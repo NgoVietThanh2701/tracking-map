@@ -2,34 +2,12 @@ import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { MapContainer, TileLayer, useMap, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import {
-  LOCATION_MARKER,
   MAP_CONFIG,
   OSM_ATTRIBUTION,
   ROUTE_STYLE,
   SEARCH_MARKER,
 } from "../constants";
 import DeviceMarker from "./DeviceMarker";
-
-function LocationMarker({ position, permission }) {
-  const map = useMap();
-  const markerRef = useRef(null);
-
-  const defaultIcon = L.icon(LOCATION_MARKER);
-
-  useEffect(() => {
-    if (!position || permission !== "granted") return;
-
-    if (markerRef.current) {
-      markerRef.current.setLatLng([position.lat, position.lng]);
-    } else {
-      markerRef.current = L.marker([position.lat, position.lng], {
-        icon: defaultIcon,
-      }).addTo(map);
-    }
-  }, [position, permission, map, defaultIcon]);
-
-  return null;
-}
 
 function SearchMarker({ searchPlace }) {
   const map = useMap();
@@ -70,27 +48,46 @@ function SearchMarker({ searchPlace }) {
   return null;
 }
 
-function RouteLayer({ route }) {
+function RouteLayer({ route, hideStartPin = false }) {
   const map = useMap();
   const routeRef = useRef(null);
   const startRef = useRef(null);
   const endRef = useRef(null);
   const labelRef = useRef(null);
 
-  const buildPinIcon = (text, kind) =>
+  const buildStartFlagIcon = () =>
     L.divIcon({
       className: "",
-      iconSize: [34, 34],
-      iconAnchor: [17, 34],
+      iconSize: [30, 38],
+      iconAnchor: [15, 38],
       html: `
         <div style="
-          width:34px;height:34px;border-radius:9999px;
-          display:flex;align-items:center;justify-content:center;
-          color:white;font-weight:700;font-size:12px;
-          box-shadow:0 6px 18px rgba(0,0,0,.25);
-          border:2px solid rgba(255,255,255,.95);
-          background:${kind === "start" ? "#16a34a" : "#dc2626"};
-        ">${text}</div>
+          position: relative;
+          width: 30px;
+          height: 38px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+        ">
+          <div style="
+            width: 16px;
+            height: 24px;
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            border-radius: 4px 10px 10px 4px;
+            box-shadow: 0 4px 10px rgba(22,163,74,0.5);
+            position: relative;
+            top: 4px;
+          "></div>
+          <div style="
+            position: absolute;
+            bottom: 0;
+            width: 3px;
+            height: 26px;
+            background: #166534;
+            border-radius: 9999px;
+            box-shadow: 0 2px 6px rgba(22,101,52,0.6);
+          "></div>
+        </div>
       `,
     });
 
@@ -155,12 +152,53 @@ function RouteLayer({ route }) {
     const end = route.latlngs[route.latlngs.length - 1];
     const mid = route.latlngs[Math.floor(route.latlngs.length / 2)];
 
-    startRef.current = L.marker(start, {
-      icon: buildPinIcon("A", "start"),
+    if (!hideStartPin) {
+      startRef.current = L.marker(start, {
+        icon: buildStartFlagIcon(),
+      }).addTo(map);
+    }
+    endRef.current = L.marker(end, {
+      icon: L.divIcon({
+        className: "",
+        iconSize: [34, 40],
+        iconAnchor: [17, 40],
+        html: `
+          <div style="
+            position: relative;
+            width: 34px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <div style="
+              width: 26px;
+              height: 26px;
+              border-radius: 9999px;
+              background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+              border: 3px solid white;
+              box-shadow: 0 6px 16px rgba(127,29,29,0.55);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-size: 16px;
+            ">
+              ⓑ
+            </div>
+            <div style="
+              position: absolute;
+              bottom: 0;
+              width: 8px;
+              height: 12px;
+              border-radius: 9999px;
+              background: linear-gradient(to bottom, #ef4444, #b91c1c);
+              box-shadow: 0 4px 10px rgba(127,29,29,0.6);
+            "></div>
+          </div>
+        `,
+      }),
     }).addTo(map);
-    endRef.current = L.marker(end, { icon: buildPinIcon("B", "end") }).addTo(
-      map,
-    );
 
     const km = route.distance / 1000;
     const kmText = `${km.toFixed(km >= 10 ? 1 : 2)} km`;
@@ -170,7 +208,7 @@ function RouteLayer({ route }) {
     }).addTo(map);
 
     map.fitBounds(routeRef.current.getBounds(), { padding: [40, 40] });
-  }, [route, map]);
+  }, [route, map, hideStartPin]);
 
   return null;
 }
@@ -186,7 +224,10 @@ function MapInstanceBinder({ mapRef }) {
 }
 
 const MapView = forwardRef(
-  ({ center, searchPlace, route, selectedDevice, children }, ref) => {
+  (
+    { center, searchPlace, route, selectedDevice, hideRouteStartPin = false, children },
+    ref,
+  ) => {
     const mapInstanceRef = useRef(null);
 
     useImperativeHandle(
@@ -214,7 +255,7 @@ const MapView = forwardRef(
           <TileLayer url={MAP_CONFIG.TILE_URL} attribution={OSM_ATTRIBUTION} />
           <MapInstanceBinder mapRef={mapInstanceRef} />
           <SearchMarker searchPlace={searchPlace} />
-          <RouteLayer route={route} />
+          <RouteLayer route={route} hideStartPin={hideRouteStartPin} />
           {selectedDevice && <DeviceMarker device={selectedDevice} />}
           {children}
         </MapContainer>

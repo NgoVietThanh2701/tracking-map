@@ -2,7 +2,7 @@
 export const TABS = [
   { id: "devices", label: "Thiết bị", icon: "📱" },
   { id: "search", label: "Tìm kiếm", icon: "🔎" },
-  { id: "route", label: "Chỉ đường", icon: "🧭" },
+  { id: "simulation", label: "Mô phỏng", icon: "🚚" },
 ];
 
 // API Configuration
@@ -17,7 +17,7 @@ export const NOMINATIM_CONFIG = {
 export const OSRM_CONFIG = {
   PROXY_PATH: "/osrm/route/v1",
   PROFILE: "driving",
-  OVERVIEW: "full",
+  OVERVIEW: "simplified",
   GEOMETRIES: "geojson",
 };
 
@@ -26,21 +26,13 @@ export const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export const MAP_CONFIG = {
+  DEFAULT_CENTER: [21.0285, 105.8542],
   DEFAULT_ZOOM: 15,
   SEARCH_ZOOM: 16,
   TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 };
 
 // Marker Configuration
-export const LOCATION_MARKER = {
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-};
-
 export const SEARCH_MARKER = {
   radius: 10,
   color: "#2563eb",
@@ -65,17 +57,15 @@ export const PANEL_TITLES = {
     title: "Tìm kiếm địa chỉ",
     subtitle: "Gõ để tìm và chọn kết quả",
   },
-  ROUTE: {
-    title: "Tìm quãng đường đi",
-    subtitle: "Nhập 2 vị trí A → B",
+  SIMULATION: {
+    title: "Mô phỏng di chuyển",
+    subtitle: "",
   },
 };
 
 export const DEVICE_FORM_LABELS = {
   NAME: "Tên thiết bị",
   NAME_PLACEHOLDER: "VD: Xe tải A, Xe máy B...",
-  DEVICE_ID: "ID thiết bị",
-  DEVICE_ID_PLACEHOLDER: "VD: DEV001, GPS-123...",
   LOCATION: "Tìm kiếm vị trí",
   LOCATION_PLACEHOLDER: "Nhập địa chỉ để tìm vị trí",
   ADD_BUTTON: "➕ Thêm thiết bị",
@@ -103,9 +93,7 @@ export const SEARCH_PANEL_LABELS = {
   INPUT_PLACEHOLDER: "Ví dụ: 1 Võ Văn Ngân, Thủ Đức…",
   HELP_TEXT: "Chọn một kết quả để đặt marker lên bản đồ.",
   SELECTED: "Đã chọn:",
-};
-
-export const ROUTE_PANEL_LABELS = {
+  FIND_ROUTE_LABEL: "Tìm đường từ A đến B",
   FROM_LABEL: "Điểm A",
   FROM_PLACEHOLDER: "Nhập vị trí bắt đầu…",
   TO_LABEL: "Điểm B",
@@ -113,10 +101,20 @@ export const ROUTE_PANEL_LABELS = {
   FIND_BUTTON: "Tìm đường",
   FINDING: "Đang tìm đường…",
   CLEAR_BUTTON: "Xóa tuyến",
+  ROUTE_INFO: "Tuyến đường",
   DISTANCE: "Quãng đường:",
   DURATION: "Thời gian:",
   KM: "km",
   MINUTES: "phút",
-  ROUTE_INFO: "Tuyến đường",
   NO_SELECTION: 'Chọn A và B, sau đó nhấn "Tìm đường".',
+};
+
+export const SIMULATION_PANEL_LABELS = {
+  DEVICE_LABEL: "Chọn thiết bị mô phỏng",
+  DEVICE_PLACEHOLDER: "-- Chọn thiết bị --",
+  DESTINATION_LABEL: "Điểm đến",
+  DESTINATION_PLACEHOLDER: "Nhập địa chỉ điểm đến…",
+  SPEED_LABEL: "Thời gian mô phỏng (giây)",
+  STOP_BUTTON: "Dừng mô phỏng",
+  PLAY_BUTTON: "Bắt đầu mô phỏng",
 };

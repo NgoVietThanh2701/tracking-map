@@ -1,137 +1,140 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { useNominatimSearch } from '../hooks/useNominatimSearch'
-import { NOMINATIM_CONFIG } from '../constants'
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useNominatimSearch } from "../hooks/useNominatimSearch";
+import { NOMINATIM_CONFIG } from "../constants";
 
 function useDebouncedValue(value, delayMs) {
-  const [debounced, setDebounced] = useState(value)
+  const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setDebounced(value), delayMs)
-    return () => window.clearTimeout(t)
-  }, [value, delayMs])
+    const t = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(t);
+  }, [value, delayMs]);
 
-  return debounced
+  return debounced;
 }
 
 export default function AutoComplete({
   label,
   placeholder,
   onSelect,
-  initialValue = '',
+  initialValue = "",
   minChars = NOMINATIM_CONFIG.MIN_CHARS,
   onClear,
 }) {
-  const [query, setQuery] = useState(initialValue)
-  const [focused, setFocused] = useState(false)
-  const [closedAfterSelect, setClosedAfterSelect] = useState(false)
-  const anchorRef = useRef(null)
-  const [dropdownRect, setDropdownRect] = useState(null)
-  const skipNextSearchRef = useRef(false)
+  const [query, setQuery] = useState(initialValue);
+  const [focused, setFocused] = useState(false);
+  const [closedAfterSelect, setClosedAfterSelect] = useState(false);
+  const anchorRef = useRef(null);
+  const [dropdownRect, setDropdownRect] = useState(null);
+  const skipNextSearchRef = useRef(false);
 
-  const debounced = useDebouncedValue(query, NOMINATIM_CONFIG.DEBOUNCE_MS)
-  const { loading, error, items, search } = useNominatimSearch()
-  const canSearch = debounced.trim().length >= minChars
+  const debounced = useDebouncedValue(query, NOMINATIM_CONFIG.DEBOUNCE_MS);
+  const { loading, error, items, search } = useNominatimSearch();
+  const canSearch = debounced.trim().length >= minChars;
 
-  const showDropdown = focused && canSearch && !closedAfterSelect
+  const showDropdown = focused && canSearch && !closedAfterSelect;
 
   useEffect(() => {
     if (!focused || !canSearch) {
-      return
+      return;
     }
 
     if (skipNextSearchRef.current) {
-      skipNextSearchRef.current = false
-      return
+      skipNextSearchRef.current = false;
+      return;
     }
 
-    search(debounced).catch(() => {})
-  }, [debounced, canSearch, focused, search])
+    search(debounced).catch(() => {});
+  }, [debounced, canSearch, focused, search]);
 
   const statusText = useMemo(() => {
-    if (loading) return 'Đang tìm…'
-    if (!canSearch) return `Nhập tối thiểu ${minChars} ký tự`
-    if (error) return error
-    if (items.length === 0) return 'Không có kết quả'
-    return null
-  }, [loading, canSearch, minChars, error, items.length])
+    if (loading) return "Đang tìm…";
+    if (!canSearch) return `Nhập tối thiểu ${minChars} ký tự`;
+    if (error) return error;
+    if (items.length === 0) return "Không có kết quả";
+    return null;
+  }, [loading, canSearch, minChars, error, items.length]);
 
   const selectItem = (place) => {
-    skipNextSearchRef.current = true
-    setClosedAfterSelect(true)
-    setQuery(place.name)
-    onSelect?.(place)
-  }
+    skipNextSearchRef.current = true;
+    setClosedAfterSelect(true);
+    setQuery(place.name);
+    onSelect?.(place);
+  };
 
   const clear = () => {
-    setClosedAfterSelect(false)
-    setQuery('')
-    setDropdownRect(null)
-    onClear?.()
-  }
+    setClosedAfterSelect(false);
+    setQuery("");
+    setDropdownRect(null);
+    onClear?.();
+  };
 
   useEffect(() => {
-    if (!showDropdown) return
+    if (!showDropdown) return;
 
     const update = () => {
-      const el = anchorRef.current
-      if (!el) return
-      const r = el.getBoundingClientRect()
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
       setDropdownRect({
         left: r.left,
         top: r.bottom + 8,
         width: r.width,
-      })
-    }
+      });
+    };
 
-    update()
-    window.addEventListener('resize', update)
-    window.addEventListener('scroll', update, true)
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
     return () => {
-      window.removeEventListener('resize', update)
-      window.removeEventListener('scroll', update, true)
-    }
-  }, [showDropdown])
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [showDropdown]);
 
-  const dropdown = showDropdown && dropdownRect ? (
-    <div
-      style={{
-        position: 'fixed',
-        left: dropdownRect.left,
-        top: dropdownRect.top,
-        width: dropdownRect.width,
-        zIndex: 5000,
-      }}
-      className="rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
-    >
-      {statusText ? (
-        <div className="px-3 py-2 text-sm text-gray-500">{statusText}</div>
-      ) : (
-        <ul className="max-h-64 overflow-y-auto">
-          {items.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => selectItem(p)}
-                className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-900"
-              >
-                <div className="font-medium line-clamp-2">{p.name}</div>
-                <div className="text-xs text-gray-500 mt-0.5 font-mono">
-                  {p.lat.toFixed(6)}, {p.lng.toFixed(6)}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  ) : null
+  const dropdown =
+    showDropdown && dropdownRect ? (
+      <div
+        style={{
+          position: "fixed",
+          left: dropdownRect.left,
+          top: dropdownRect.top,
+          width: dropdownRect.width,
+          zIndex: 5000,
+        }}
+        className="rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
+      >
+        {statusText ? (
+          <div className="px-3 py-2 text-sm text-gray-500">{statusText}</div>
+        ) : (
+          <ul className="max-h-64 overflow-y-auto">
+            {items.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectItem(p)}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-900"
+                >
+                  <div className="font-medium line-clamp-2">{p.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 font-mono">
+                    {p.lat.toFixed(6)}, {p.lng.toFixed(6)}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    ) : null;
 
   return (
     <div className="relative">
       {label ? (
-        <span className="text-xs uppercase tracking-wide text-gray-500">{label}</span>
+        <span className="text-xs uppercase tracking-wide text-gray-500">
+          {label}
+        </span>
       ) : null}
 
       <div className="relative mt-2">
@@ -140,16 +143,16 @@ export default function AutoComplete({
           type="text"
           value={query}
           onChange={(e) => {
-            setClosedAfterSelect(false)
-            setQuery(e.target.value)
+            setClosedAfterSelect(false);
+            setQuery(e.target.value);
           }}
           onFocus={() => {
-            setFocused(true)
-            setClosedAfterSelect(false)
+            setFocused(true);
+            setClosedAfterSelect(false);
           }}
           onBlur={() => {
-            setFocused(false)
-            window.setTimeout(() => setClosedAfterSelect(false), 120)
+            setFocused(false);
+            window.setTimeout(() => setClosedAfterSelect(false), 120);
           }}
           placeholder={placeholder}
           autoComplete="off"
@@ -172,6 +175,5 @@ export default function AutoComplete({
 
       {dropdown ? createPortal(dropdown, document.body) : null}
     </div>
-  )
+  );
 }
-

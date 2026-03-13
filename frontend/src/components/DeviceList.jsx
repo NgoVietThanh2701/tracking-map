@@ -31,7 +31,7 @@ export default function DeviceList({ devices, onSelectDevice, onRemove }) {
                 )}
               </div>
               <div className="text-xs text-gray-600 mt-1">
-                <div>ID: {device.device_id}</div>
+                <div>ID: {device.device_id || device.id}</div>
                 <div className="truncate">{device.address}</div>
                 <div className="mt-1 font-mono text-xs text-gray-500">
                   {device.latitude.toFixed(6)}, {device.longitude.toFixed(6)}

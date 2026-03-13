@@ -4,7 +4,6 @@ import AutoComplete from "./AutoComplete";
 export default function DeviceForm({ onAddDevice }) {
   const [formData, setFormData] = useState({
     name: "",
-    device_id: "",
     selectedPlace: null,
   });
   const [loading, setLoading] = useState(false);
@@ -29,11 +28,6 @@ export default function DeviceForm({ onAddDevice }) {
       return;
     }
 
-    if (!formData.device_id.trim()) {
-      alert("Vui lòng nhập ID thiết bị");
-      return;
-    }
-
     if (!formData.selectedPlace) {
       alert("Vui lòng chọn vị trí cho thiết bị");
       return;
@@ -43,7 +37,6 @@ export default function DeviceForm({ onAddDevice }) {
     try {
       await onAddDevice({
         name: formData.name.trim(),
-        device_id: formData.device_id.trim(),
         latitude: formData.selectedPlace.lat,
         longitude: formData.selectedPlace.lng,
         address: formData.selectedPlace.name,
@@ -52,7 +45,6 @@ export default function DeviceForm({ onAddDevice }) {
       // Reset form
       setFormData({
         name: "",
-        device_id: "",
         selectedPlace: null,
       });
       setClearCounter((prev) => prev + 1);
@@ -80,25 +72,6 @@ export default function DeviceForm({ onAddDevice }) {
           value={formData.name}
           onChange={handleInputChange}
           placeholder="VD: Xe tải A, Xe máy B..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={loading}
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="device-id"
-          className="block text-xs font-medium text-gray-700 mb-1"
-        >
-          ID thiết bị
-        </label>
-        <input
-          id="device-id"
-          type="text"
-          name="device_id"
-          value={formData.device_id}
-          onChange={handleInputChange}
-          placeholder="VD: DEV001, GPS-123..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={loading}
         />

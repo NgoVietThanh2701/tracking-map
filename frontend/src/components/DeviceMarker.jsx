@@ -11,25 +11,42 @@ export default function DeviceMarker({ device }) {
 
     const markerIcon = L.divIcon({
       className: "device-marker",
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
+      iconSize: [32, 40],
+      iconAnchor: [16, 40],
+      popupAnchor: [0, -36],
       html: `
         <div style="
+          position: relative;
           width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border: 3px solid white;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: bold;
-          color: white;
-          font-size: 16px;
         ">
-          📱
+          <div style="
+            width: 24px;
+            height: 24px;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #1d4ed8 100%);
+            border: 3px solid white;
+            box-shadow: 0 6px 14px rgba(15,23,42,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+          ">
+            ●
+          </div>
+          <div style="
+            position: absolute;
+            bottom: 0;
+            width: 6px;
+            height: 10px;
+            border-radius: 9999px;
+            background: linear-gradient(to bottom, #0ea5e9, #1d4ed8);
+            box-shadow: 0 4px 8px rgba(15,23,42,0.45);
+          "></div>
         </div>
       `,
     });
@@ -44,7 +61,7 @@ export default function DeviceMarker({ device }) {
       markerRef.current.bindPopup(`
         <div style="font-size: 12px; min-width: 150px;">
           <div style="font-weight: bold; margin-bottom: 4px;">${device.name}</div>
-          <div style="color: #666; margin-bottom: 4px;">ID: ${device.device_id}</div>
+          <div style="color: #666; margin-bottom: 4px;">ID: ${device.device_id || device.id}</div>
           <div style="color: #666; margin-bottom: 4px; font-size: 11px; max-width: 150px; word-break: break-word;">
             📍 ${device.address}
           </div>

@@ -28,7 +28,6 @@ export function useDevices() {
     const newDevice = {
       id: Date.now().toString(),
       name: device.name,
-      device_id: device.device_id,
       latitude: device.latitude,
       longitude: device.longitude,
       address: device.address,
