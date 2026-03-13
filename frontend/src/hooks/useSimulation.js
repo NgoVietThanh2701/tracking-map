@@ -7,7 +7,7 @@ export function useSimulation() {
   const animationRef = useRef(null);
   const startTimeRef = useRef(0);
   const durationRef = useRef(0);
-   const playingRef = useRef(false);
+  const playingRef = useRef(false);
 
   const stopInternal = useCallback(() => {
     if (animationRef.current != null) {
@@ -94,4 +94,3 @@ export function useSimulation() {
     reset,
   };
 }
-

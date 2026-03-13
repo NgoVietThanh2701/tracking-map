@@ -16,7 +16,7 @@ function TabButton({ active, icon, label, onClick }) {
       onClick={onClick}
       className={[
         "group relative w-full h-11 rounded-lg flex items-center justify-center transition-colors",
-        active ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100",
+        active ? "bg-gray-700 text-white" : "text-gray-700 hover:bg-gray-100",
       ].join(" ")}
       aria-pressed={active}
       aria-label={label}
@@ -163,7 +163,9 @@ export default function InfoPanel({
                     {searchPlace ? (
                       <div className="mt-1 text-xs text-gray-500">
                         {SEARCH_PANEL_LABELS.SELECTED}{" "}
-                        <span className="text-gray-900">{searchPlace.name}</span>
+                        <span className="text-gray-900">
+                          {searchPlace.name}
+                        </span>
                       </div>
                     ) : null}
 
@@ -279,9 +281,7 @@ export default function InfoPanel({
                       onSimReset?.();
 
                       if (value) {
-                        const device = devices.find(
-                          (d) => d.id === value,
-                        );
+                        const device = devices.find((d) => d.id === value);
                         if (device) {
                           onSimDeviceSelect?.(device);
                           onSelectDevice?.(device.id);
@@ -319,7 +319,9 @@ export default function InfoPanel({
                   <AutoComplete
                     key={`sim-dest-${simDevice?.id}`}
                     label={SIMULATION_PANEL_LABELS.DESTINATION_LABEL}
-                    placeholder={SIMULATION_PANEL_LABELS.DESTINATION_PLACEHOLDER}
+                    placeholder={
+                      SIMULATION_PANEL_LABELS.DESTINATION_PLACEHOLDER
+                    }
                     onSelect={(place) => onSimDestinationSelect?.(place)}
                     onClear={() => {
                       onSimDestinationSelect?.(null);

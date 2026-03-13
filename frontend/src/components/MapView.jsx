@@ -225,7 +225,14 @@ function MapInstanceBinder({ mapRef }) {
 
 const MapView = forwardRef(
   (
-    { center, searchPlace, route, selectedDevice, hideRouteStartPin = false, children },
+    {
+      center,
+      searchPlace,
+      route,
+      selectedDevice,
+      hideRouteStartPin = false,
+      children,
+    },
     ref,
   ) => {
     const mapInstanceRef = useRef(null);
