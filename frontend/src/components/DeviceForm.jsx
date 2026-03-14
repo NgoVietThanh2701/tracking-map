@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import AutoComplete from "./AutoComplete";
 
-export default function DeviceForm({ onAddDevice }) {
+const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
   const [formData, setFormData] = useState({
     name: "",
     selectedPlace: null,
@@ -115,4 +115,7 @@ export default function DeviceForm({ onAddDevice }) {
       </button>
     </div>
   );
-}
+});
+
+DeviceForm.displayName = "DeviceForm";
+export default DeviceForm;

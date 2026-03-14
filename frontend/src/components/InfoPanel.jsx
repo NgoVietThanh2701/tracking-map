@@ -51,6 +51,7 @@ export default function InfoPanel({
   onRouteToSelect,
   onRouteBuild,
   onRouteClear,
+  onRouteResultClear,
   routeLoading,
   routeError,
   routeResult,
@@ -67,27 +68,45 @@ export default function InfoPanel({
   onSimStart,
   onSimStop,
   onSimReset,
-  simRoute,
 }) {
   const [activeTab, setActiveTab] = useState("devices");
-  const [routeReset, setRouteReset] = useState(0);
   const [simDuration, setSimDuration] = useState(10);
   const [isFindingRoute, setIsFindingRoute] = useState(false);
 
   // Auto-load selected device to simulation when switching to simulation tab
   useEffect(() => {
-    if (activeTab === "simulation" && selectedDevice && !simDevice) {
+    if (activeTab === "simulation" && selectedDevice) {
       onSimDeviceSelect?.(selectedDevice);
     }
-  }, [activeTab, selectedDevice, simDevice, onSimDeviceSelect]);
+  }, [activeTab, selectedDevice, onSimDeviceSelect]);
 
-  // Reset destination, speed và trạng thái mô phỏng khi rời tab mô phỏng
+  // Reset route UI when leaving search tab
+  useEffect(() => {
+    return () => {
+      setIsFindingRoute(false);
+    };
+  }, [activeTab]);
+
+  // Clear route when navigating to devices tab
+  useEffect(() => {
+    if (activeTab === "devices") {
+      onRouteClear?.();
+    }
+  }, [activeTab, onRouteClear]);
+
+  // Reset simulation state and duration when leaving simulation tab
+  useEffect(() => {
+    return () => {
+      setSimDuration(10);
+    };
+  }, [activeTab]);
+
+  // Reset simulation when leaving simulation tab
   useEffect(() => {
     if (activeTab !== "simulation") {
-      setSimDuration(10);
       onSimReset?.();
     }
-  }, [activeTab]);
+  }, [activeTab, onSimReset]);
 
   const isSearchRouteButtonDisabled =
     !routeFrom || !routeTo || routeLoading || !!routeResult;
@@ -181,20 +200,24 @@ export default function InfoPanel({
                   <>
                     <div>
                       <AutoComplete
-                        key={`route-from-${routeReset}`}
                         label={SEARCH_PANEL_LABELS.FROM_LABEL}
                         placeholder={SEARCH_PANEL_LABELS.FROM_PLACEHOLDER}
                         onSelect={(place) => onRouteFromSelect?.(place)}
-                        onClear={() => onRouteFromSelect?.(null)}
+                        onClear={() => {
+                          onRouteFromSelect?.(null);
+                          onRouteResultClear?.();
+                        }}
                       />
                     </div>
 
                     <AutoComplete
-                      key={`route-to-${routeReset}`}
                       label={SEARCH_PANEL_LABELS.TO_LABEL}
                       placeholder={SEARCH_PANEL_LABELS.TO_PLACEHOLDER}
                       onSelect={(place) => onRouteToSelect?.(place)}
-                      onClear={() => onRouteToSelect?.(null)}
+                      onClear={() => {
+                        onRouteToSelect?.(null);
+                        onRouteResultClear?.();
+                      }}
                     />
 
                     <button
@@ -244,17 +267,6 @@ export default function InfoPanel({
                         </p>
                       )}
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRouteReset((v) => v + 1);
-                        onRouteClear?.();
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      {SEARCH_PANEL_LABELS.CLEAR_BUTTON}
-                    </button>
 
                     <button
                       type="button"
@@ -346,13 +358,16 @@ export default function InfoPanel({
                     </div>
                   </div>
 
-                  {simDevice && simDestination && routeLoading && !simRoute && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                      <div className="px-4 py-3 rounded-xl bg-white/95 shadow-lg border border-yellow-300 text-xs font-semibold text-yellow-800">
-                        Đang tìm tuyến đường mô phỏng...
+                  {simDevice &&
+                    simDestination &&
+                    routeLoading &&
+                    !routeResult && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center">
+                        <div className="px-4 py-3 rounded-xl bg-white/95 shadow-lg border border-yellow-300 text-xs font-semibold text-yellow-800">
+                          Đang tìm tuyến đường mô phỏng...
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
 
                 {simPlaying ? (
@@ -368,23 +383,23 @@ export default function InfoPanel({
                     type="button"
                     onClick={() => {
                       if (
-                        simRoute &&
-                        simRoute.latlngs &&
-                        simRoute.latlngs.length > 0
+                        routeResult &&
+                        routeResult.latlngs &&
+                        routeResult.latlngs.length > 0
                       ) {
-                        onSimStart?.(simRoute.latlngs, simDuration);
+                        onSimStart?.(routeResult.latlngs, simDuration);
                       }
                     }}
                     disabled={
-                      !simRoute ||
-                      !simRoute.latlngs ||
-                      simRoute.latlngs.length === 0
+                      !routeResult ||
+                      !routeResult.latlngs ||
+                      routeResult.latlngs.length === 0
                     }
                     className={[
                       "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors",
-                      !simRoute ||
-                      !simRoute.latlngs ||
-                      simRoute.latlngs.length === 0
+                      !routeResult ||
+                      !routeResult.latlngs ||
+                      routeResult.latlngs.length === 0
                         ? "bg-gray-300 cursor-not-allowed"
                         : "bg-green-600 hover:bg-green-700",
                     ].join(" ")}
@@ -392,18 +407,6 @@ export default function InfoPanel({
                     {SIMULATION_PANEL_LABELS.PLAY_BUTTON}
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSimReset?.();
-                    onSimDeviceSelect?.(null);
-                    onSimDestinationSelect?.(null);
-                  }}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Đặt lại
-                </button>
               </div>
             ) : null}
           </div>

@@ -51,15 +51,6 @@ export function useDevices() {
     );
   }, []);
 
-  const deselectDevice = useCallback(() => {
-    setDevices((prev) =>
-      prev.map((d) => ({
-        ...d,
-        selected: false,
-      })),
-    );
-  }, []);
-
   const getSelectedDevice = useCallback(() => {
     return devices.find((d) => d.selected) || null;
   }, [devices]);
@@ -69,7 +60,6 @@ export function useDevices() {
     addDevice,
     removeDevice,
     selectDevice,
-    deselectDevice,
     getSelectedDevice,
   };
 }

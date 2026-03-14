@@ -1,20 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNominatimSearch } from "../hooks/useNominatimSearch";
+import { useDebounce } from "../hooks/useDebounce";
 import { NOMINATIM_CONFIG } from "../constants";
 
-function useDebouncedValue(value, delayMs) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(t);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
-export default function AutoComplete({
+const AutoComplete = memo(function AutoComplete({
   label,
   placeholder,
   onSelect,
@@ -29,7 +19,7 @@ export default function AutoComplete({
   const [dropdownRect, setDropdownRect] = useState(null);
   const skipNextSearchRef = useRef(false);
 
-  const debounced = useDebouncedValue(query, NOMINATIM_CONFIG.DEBOUNCE_MS);
+  const debounced = useDebounce(query, NOMINATIM_CONFIG.DEBOUNCE_MS);
   const { loading, error, items, search } = useNominatimSearch();
   const canSearch = debounced.trim().length >= minChars;
 
@@ -176,4 +166,7 @@ export default function AutoComplete({
       {dropdown ? createPortal(dropdown, document.body) : null}
     </div>
   );
-}
+});
+
+AutoComplete.displayName = "AutoComplete";
+export default AutoComplete;

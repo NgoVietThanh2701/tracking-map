@@ -29,6 +29,7 @@ export function useNominatimSearch() {
   const [error, setError] = useState(null);
   const [items, setItems] = useState([]);
   const abortRef = useRef(null);
+  const requestIdRef = useRef(0); // Track request IDs to prevent race conditions
 
   const search = useCallback(async (searchQuery) => {
     if (
@@ -43,6 +44,9 @@ export function useNominatimSearch() {
 
     setLoading(true);
     setError(null);
+
+    // Increment request ID to track this specific request
+    const currentRequestId = ++requestIdRef.current;
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -61,20 +65,40 @@ export function useNominatimSearch() {
           Accept: "application/json",
         },
       });
+
+      // Ignore response if a newer request has been made
+      if (currentRequestId !== requestIdRef.current) {
+        return [];
+      }
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const places = Array.isArray(data)
         ? data.map(toPlace).filter(Boolean)
         : [];
-      setItems(places);
-      return places; // return for caller to track
+
+      // Only update state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setItems(places);
+        setError(null);
+      }
+
+      return places;
     } catch (e) {
       if (e?.name === "AbortError") return;
-      setError("Không thể tìm kiếm lúc này. Vui lòng thử lại.");
-      setItems([]);
+
+      // Only update error state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setError("Không thể tìm kiếm lúc này. Vui lòng thử lại.");
+        setItems([]);
+      }
+
       throw e;
     } finally {
-      setLoading(false);
+      // Only update loading if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -83,6 +107,5 @@ export function useNominatimSearch() {
     error,
     items,
     search,
-    abort: () => abortRef.current?.abort(),
   };
 }

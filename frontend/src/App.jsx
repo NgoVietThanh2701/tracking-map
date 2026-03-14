@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import MapView from "./components/MapView";
 import InfoPanel from "./components/InfoPanel";
 import SimulationMarkers from "./components/SimulationMarkers";
@@ -8,14 +8,8 @@ import { useSimulation } from "./hooks/useSimulation";
 import { MAP_CONFIG } from "./constants";
 
 function App() {
-  const {
-    devices,
-    addDevice,
-    removeDevice,
-    selectDevice,
-    deselectDevice,
-    getSelectedDevice,
-  } = useDevices();
+  const { devices, addDevice, removeDevice, selectDevice, getSelectedDevice } =
+    useDevices();
   const [searchPlace, setSearchPlace] = useState(null);
   const [routeFrom, setRouteFrom] = useState(null);
   const [routeTo, setRouteTo] = useState(null);
@@ -40,6 +34,7 @@ function App() {
   const selectedDevice = getSelectedDevice();
   const defaultCenter = MAP_CONFIG?.DEFAULT_CENTER || [21.0285, 105.8542]; // Hà Nội
 
+  // Center map when selected device changes (view only)
   useEffect(() => {
     if (selectedDevice && mapRef.current) {
       mapRef.current.centerToDevice(
@@ -47,21 +42,16 @@ function App() {
         selectedDevice.longitude,
       );
     }
-
-    // Đồng bộ thiết bị đang chọn sang mô phỏng
-    if (selectedDevice) {
-      setSimDevice(selectedDevice);
-    }
   }, [selectedDevice]);
 
-  // Theo dõi và giữ trung tâm map theo vị trí mô phỏng
+  // Track and center map as simulation progresses
   useEffect(() => {
     if (!simPosition || !mapRef.current) return;
     const [lat, lng] = simPosition;
     mapRef.current.centerToDevice(lat, lng);
   }, [simPosition]);
 
-  // Tự động build route mô phỏng khi đã chọn cả thiết bị và điểm đến
+  // Automatically build simulation route when device and destination are selected
   useEffect(() => {
     if (!simDevice || !simDestination) return;
 
@@ -71,20 +61,23 @@ function App() {
     });
   }, [simDevice, simDestination, getRoute]);
 
-  const handleSimStart = (latlngs, durationSeconds) => {
-    if (!Array.isArray(latlngs) || latlngs.length < 2) return;
-    startSimulation(latlngs, durationSeconds);
-  };
+  const handleSimStart = useCallback(
+    (latlngs, durationSeconds) => {
+      if (!Array.isArray(latlngs) || latlngs.length < 2) return;
+      startSimulation(latlngs, durationSeconds);
+    },
+    [startSimulation],
+  );
 
-  const handleSimStop = () => {
+  const handleSimStop = useCallback(() => {
     stopSimulation();
-  };
+  }, [stopSimulation]);
 
-  const handleSimReset = () => {
+  const handleSimReset = useCallback(() => {
     resetSimulation();
     clearRoute();
     setSimDestination(null);
-  };
+  }, [resetSimulation, clearRoute]);
 
   return (
     <div className="h-screen w-screen overflow-hidden relative">
@@ -111,6 +104,7 @@ function App() {
           setRouteFrom(null);
           setRouteTo(null);
         }}
+        onRouteResultClear={() => clearRoute()}
         routeLoading={routeLoading}
         routeError={routeError}
         routeResult={route}
@@ -118,7 +112,6 @@ function App() {
         onAddDevice={addDevice}
         onRemoveDevice={removeDevice}
         onSelectDevice={selectDevice}
-        onDeselectDevice={deselectDevice}
         selectedDevice={selectedDevice}
         simDevice={simDevice}
         onSimDeviceSelect={setSimDevice}
@@ -128,7 +121,6 @@ function App() {
         onSimStart={handleSimStart}
         onSimStop={handleSimStop}
         onSimReset={handleSimReset}
-        simRoute={route}
       />
     </div>
   );

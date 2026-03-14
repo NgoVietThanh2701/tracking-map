@@ -100,7 +100,6 @@ export const SEARCH_PANEL_LABELS = {
   TO_PLACEHOLDER: "Nhập vị trí đến…",
   FIND_BUTTON: "Tìm đường",
   FINDING: "Đang tìm đường…",
-  CLEAR_BUTTON: "Xóa tuyến",
   ROUTE_INFO: "Tuyến đường",
   DISTANCE: "Quãng đường:",
   DURATION: "Thời gian:",

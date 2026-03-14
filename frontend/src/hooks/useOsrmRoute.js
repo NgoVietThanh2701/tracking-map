@@ -1,6 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { OSRM_CONFIG } from "../constants";
 
+// Cache expiration time in milliseconds (5 minutes)
+const CACHE_TTL = 5 * 60 * 1000;
+const MAX_CACHE_SIZE = 50;
+
 function toRoute(data) {
   const r = data?.routes?.[0];
   const coords = r?.geometry?.coordinates;
@@ -29,6 +33,7 @@ export function useOsrmRoute() {
   const [route, setRoute] = useState(null);
   const abortRef = useRef(null);
   const cacheRef = useRef(new Map());
+  const cacheTimestampsRef = useRef(new Map());
 
   const clear = useCallback(() => {
     abortRef.current?.abort();
@@ -37,67 +42,118 @@ export function useOsrmRoute() {
     setRoute(null);
   }, []);
 
-  const getRoute = useCallback(async ({ from, to }) => {
-    if (!from || !to) {
-      setError("Vui lòng chọn đủ điểm A và B.");
-      setRoute(null);
-      return null;
+  // Clean expired cache entries
+  const cleanExpiredCache = useCallback(() => {
+    const now = Date.now();
+    const keysToDelete = [];
+
+    for (const [key, timestamp] of cacheTimestampsRef.current.entries()) {
+      if (now - timestamp > CACHE_TTL) {
+        keysToDelete.push(key);
+      }
     }
 
-    const fromKey = makeKey(from);
-    const toKey = makeKey(to);
+    keysToDelete.forEach((key) => {
+      cacheRef.current.delete(key);
+      cacheTimestampsRef.current.delete(key);
+    });
+  }, []);
 
-    if (fromKey === toKey) {
-      setError("Điểm A và B phải khác nhau.");
-      setRoute(null);
-      return null;
+  // Implement LRU eviction if cache exceeds max size
+  const evictLRUIfNeeded = useCallback((currentSize) => {
+    if (currentSize < MAX_CACHE_SIZE) return;
+
+    // Find oldest entry by timestamp
+    let oldestKey = null;
+    let oldestTime = Date.now();
+
+    for (const [key, timestamp] of cacheTimestampsRef.current.entries()) {
+      if (timestamp < oldestTime) {
+        oldestTime = timestamp;
+        oldestKey = key;
+      }
     }
 
-    const cacheKey = `${fromKey}|${toKey}`;
-    const cached = cacheRef.current.get(cacheKey);
-    if (cached) {
-      setError(null);
-      setRoute(cached);
-      return cached;
+    if (oldestKey) {
+      cacheRef.current.delete(oldestKey);
+      cacheTimestampsRef.current.delete(oldestKey);
     }
+  }, []);
 
-    setLoading(true);
-    setError(null);
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    const base = `${OSRM_CONFIG.PROXY_PATH}/${OSRM_CONFIG.PROFILE}`;
-    const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-    const url = new URL(`${base}/${coords}`, window.location.origin);
-    url.searchParams.set("overview", OSRM_CONFIG.OVERVIEW);
-    url.searchParams.set("geometries", OSRM_CONFIG.GEOMETRIES);
-    url.searchParams.set("steps", "false");
-
-    try {
-      const res = await fetch(url.toString(), { signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const parsed = toRoute(data);
-      if (!parsed) {
-        setError("Không tìm thấy tuyến đường phù hợp.");
+  const getRoute = useCallback(
+    async ({ from, to }) => {
+      if (!from || !to) {
+        setError("Vui lòng chọn đủ điểm A và B.");
         setRoute(null);
         return null;
       }
 
-      cacheRef.current.set(cacheKey, parsed);
-      setRoute(parsed);
-      return parsed;
-    } catch (e) {
-      if (e?.name === "AbortError") return null;
-      setError("Không thể lấy tuyến đường lúc này. Vui lòng thử lại.");
-      setRoute(null);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const fromKey = makeKey(from);
+      const toKey = makeKey(to);
+
+      if (fromKey === toKey) {
+        setError("Điểm A và B phải khác nhau.");
+        setRoute(null);
+        return null;
+      }
+
+      const cacheKey = `${fromKey}|${toKey}`;
+
+      // Clean expired entries before checking cache
+      cleanExpiredCache();
+
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached) {
+        setError(null);
+        setRoute(cached);
+        return cached;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const base = `${OSRM_CONFIG.PROXY_PATH}/${OSRM_CONFIG.PROFILE}`;
+      const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
+      const url = new URL(`${base}/${coords}`, window.location.origin);
+      url.searchParams.set("overview", OSRM_CONFIG.OVERVIEW);
+      url.searchParams.set("geometries", OSRM_CONFIG.GEOMETRIES);
+      url.searchParams.set("steps", "false");
+
+      try {
+        const res = await fetch(url.toString(), { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const parsed = toRoute(data);
+        if (!parsed) {
+          setError("Không tìm thấy tuyến đường phù hợp.");
+          setRoute(null);
+          return null;
+        }
+
+        // Check cache size before adding
+        evictLRUIfNeeded(cacheRef.current.size);
+
+        // Store route in cache with timestamp
+        cacheRef.current.set(cacheKey, parsed);
+        cacheTimestampsRef.current.set(cacheKey, Date.now());
+
+        setRoute(parsed);
+        return parsed;
+      } catch (e) {
+        if (e?.name === "AbortError") return null;
+        setError("Không thể lấy tuyến đường lúc này. Vui lòng thử lại.");
+        setRoute(null);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [cleanExpiredCache, evictLRUIfNeeded],
+  );
 
   return { loading, error, route, getRoute, clear };
 }
