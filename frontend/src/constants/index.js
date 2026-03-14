@@ -3,6 +3,7 @@ export const TABS = [
   { id: "devices", label: "Thiết bị", icon: "📱" },
   { id: "search", label: "Tìm kiếm", icon: "🔎" },
   { id: "simulation", label: "Mô phỏng", icon: "🚚" },
+  { id: "history", label: "Lịch sử", icon: "📍" },
 ];
 
 // API Configuration
@@ -61,6 +62,10 @@ export const PANEL_TITLES = {
     title: "Mô phỏng di chuyển",
     subtitle: "",
   },
+  HISTORY: {
+    title: "Xem lịch sử di chuyển",
+    subtitle: "Xem lịch sử di chuyển của thiết bị",
+  },
 };
 
 export const DEVICE_FORM_LABELS = {
@@ -114,6 +119,19 @@ export const SIMULATION_PANEL_LABELS = {
   DESTINATION_LABEL: "Điểm đến",
   DESTINATION_PLACEHOLDER: "Nhập địa chỉ điểm đến…",
   SPEED_LABEL: "Thời gian mô phỏng (giây)",
-  STOP_BUTTON: "Dừng mô phỏng",
   PLAY_BUTTON: "Bắt đầu mô phỏng",
+  PLAYING: "Đang mô phỏng...",
+};
+
+export const HISTORY_PANEL_LABELS = {
+  DEVICE_LABEL: "Chọn thiết bị",
+  DEVICE_PLACEHOLDER: "-- Chọn thiết bị --",
+  START_TIME_LABEL: "Thời gian bắt đầu",
+  END_TIME_LABEL: "Thời gian kết thúc",
+  SEARCH_BUTTON: "Tìm lịch sử",
+  NO_HISTORY: "Không có lịch sử di chuyển",
+  SEARCHING: "Đang tìm kiếm...",
+  HISTORY_INFO: "Lịch sử di chuyển",
+  RECORDS: "bản ghi",
+  DURATION: "Khoảng thời gian",
 };

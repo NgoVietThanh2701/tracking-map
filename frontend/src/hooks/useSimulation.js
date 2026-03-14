@@ -8,6 +8,9 @@ export function useSimulation() {
   const startTimeRef = useRef(0);
   const durationRef = useRef(0);
   const playingRef = useRef(false);
+  const lastSaveTimeRef = useRef(0);
+  const onMovementSaveRef = useRef(null);
+  const destinationRef = useRef(null);
 
   const stopInternal = useCallback(() => {
     if (animationRef.current != null) {
@@ -25,7 +28,7 @@ export function useSimulation() {
   }, [stopInternal]);
 
   const start = useCallback(
-    (points, durationSeconds) => {
+    (points, durationSeconds, onMovementSave, destination) => {
       if (!Array.isArray(points) || points.length < 2 || durationSeconds <= 0) {
         return;
       }
@@ -36,6 +39,15 @@ export function useSimulation() {
       setPlaying(true);
       startTimeRef.current = performance.now();
       durationRef.current = durationSeconds * 1000;
+      lastSaveTimeRef.current = 0;
+      onMovementSaveRef.current = onMovementSave;
+      destinationRef.current = destination;
+
+      // Save initial position
+      if (onMovementSaveRef.current && points.length > 0) {
+        const [lat, lng] = points[0];
+        onMovementSaveRef.current(lat, lng);
+      }
 
       const step = (now) => {
         if (!playingRef.current) {
@@ -53,6 +65,11 @@ export function useSimulation() {
         const index = Math.floor(position);
 
         if (index >= totalSegments) {
+          // Save final position with destination coordinates
+          if (onMovementSaveRef.current && destinationRef.current) {
+            const { lat, lng } = destinationRef.current;
+            onMovementSaveRef.current(lat, lng);
+          }
           setCurrentPosition(points[points.length - 1]);
           stopInternal();
           return;
@@ -64,6 +81,15 @@ export function useSimulation() {
         const lat = lat1 + (lat2 - lat1) * t;
         const lng = lng1 + (lng2 - lng1) * t;
         setCurrentPosition([lat, lng]);
+
+        // Save movement record every 2 seconds
+        if (elapsed - lastSaveTimeRef.current >= 2000) {
+          lastSaveTimeRef.current = elapsed;
+          if (onMovementSaveRef.current) {
+            onMovementSaveRef.current(lat, lng);
+          }
+        }
+
         if (playingRef.current) {
           animationRef.current = requestAnimationFrame(step);
         }

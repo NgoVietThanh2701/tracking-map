@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 const DEVICES_STORAGE_KEY = "tracking_map_devices";
+const MOVEMENT_HISTORY_PREFIX = "tracking_map_movement_";
 
 const initializeDevices = () => {
   try {
@@ -40,6 +41,12 @@ export function useDevices() {
 
   const removeDevice = useCallback((id) => {
     setDevices((prev) => prev.filter((d) => d.id !== id));
+    // Also remove movement history for this device
+    try {
+      localStorage.removeItem(`${MOVEMENT_HISTORY_PREFIX}${id}`);
+    } catch (error) {
+      console.error("Failed to remove movement history:", error);
+    }
   }, []);
 
   const selectDevice = useCallback((id) => {
@@ -55,11 +62,59 @@ export function useDevices() {
     return devices.find((d) => d.selected) || null;
   }, [devices]);
 
+  const updateDevice = useCallback((id, updates) => {
+    setDevices((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              ...updates,
+              timestamp: Date.now(),
+            }
+          : d,
+      ),
+    );
+  }, []);
+
+  const saveMovementRecord = useCallback((deviceId, latitude, longitude) => {
+    try {
+      const historyKey = `${MOVEMENT_HISTORY_PREFIX}${deviceId}`;
+      const history = localStorage.getItem(historyKey);
+      const records = history ? JSON.parse(history) : [];
+
+      const newRecord = {
+        device_id: deviceId,
+        latitude,
+        longitude,
+        timestamp: Date.now(),
+      };
+
+      records.push(newRecord);
+      localStorage.setItem(historyKey, JSON.stringify(records));
+    } catch (error) {
+      console.error("Failed to save movement record:", error);
+    }
+  }, []);
+
+  const getMovementHistory = useCallback((deviceId) => {
+    try {
+      const historyKey = `${MOVEMENT_HISTORY_PREFIX}${deviceId}`;
+      const history = localStorage.getItem(historyKey);
+      return history ? JSON.parse(history) : [];
+    } catch (error) {
+      console.error("Failed to get movement history:", error);
+      return [];
+    }
+  }, []);
+
   return {
     devices,
     addDevice,
     removeDevice,
     selectDevice,
     getSelectedDevice,
+    updateDevice,
+    saveMovementRecord,
+    getMovementHistory,
   };
 }

@@ -2,11 +2,14 @@ import { useMemo, useState, useEffect } from "react";
 import AutoComplete from "./AutoComplete";
 import DeviceForm from "./DeviceForm";
 import DeviceList from "./DeviceList";
+import DeviceSelector from "./DeviceSelector";
+import ResultCard from "./ResultCard";
 import {
   TABS,
   PANEL_TITLES,
   SEARCH_PANEL_LABELS,
   SIMULATION_PANEL_LABELS,
+  HISTORY_PANEL_LABELS,
 } from "../constants";
 
 function TabButton({ active, icon, label, onClick }) {
@@ -59,26 +62,37 @@ export default function InfoPanel({
   onAddDevice,
   onRemoveDevice,
   onSelectDevice,
-  selectedDevice,
   simDevice,
-  onSimDeviceSelect,
   simDestination,
   onSimDestinationSelect,
   simPlaying,
   onSimStart,
-  onSimStop,
   onSimReset,
+  historyDevice,
+  historyStartTime,
+  onHistoryStartTimeChange,
+  historyEndTime,
+  onHistoryEndTimeChange,
+  historyLoading,
+  historyError,
+  historyData,
+  onHistorySearch,
+  onHistoryClear,
 }) {
   const [activeTab, setActiveTab] = useState("devices");
   const [simDuration, setSimDuration] = useState(10);
   const [isFindingRoute, setIsFindingRoute] = useState(false);
 
-  // Auto-load selected device to simulation when switching to simulation tab
+  // Set default history time range when switching to history tab
   useEffect(() => {
-    if (activeTab === "simulation" && selectedDevice) {
-      onSimDeviceSelect?.(selectedDevice);
+    if (activeTab === "history") {
+      const endTime = new Date();
+      const startTime = new Date(endTime.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+
+      onHistoryStartTimeChange?.(startTime.toISOString().slice(0, 16));
+      onHistoryEndTimeChange?.(endTime.toISOString().slice(0, 16));
     }
-  }, [activeTab, selectedDevice, onSimDeviceSelect]);
+  }, [activeTab, onHistoryStartTimeChange, onHistoryEndTimeChange]);
 
   // Reset route UI when leaving search tab
   useEffect(() => {
@@ -108,6 +122,13 @@ export default function InfoPanel({
     }
   }, [activeTab, onSimReset]);
 
+  // Clear history when leaving history tab
+  useEffect(() => {
+    if (activeTab !== "history") {
+      onHistoryClear?.();
+    }
+  }, [activeTab, onHistoryClear]);
+
   const isSearchRouteButtonDisabled =
     !routeFrom || !routeTo || routeLoading || !!routeResult;
 
@@ -119,6 +140,8 @@ export default function InfoPanel({
         return PANEL_TITLES.SEARCH;
       case "simulation":
         return PANEL_TITLES.SIMULATION;
+      case "history":
+        return PANEL_TITLES.HISTORY;
       default:
         return PANEL_TITLES.SEARCH;
     }
@@ -236,37 +259,33 @@ export default function InfoPanel({
                         : SEARCH_PANEL_LABELS.FIND_BUTTON}
                     </button>
 
-                    <div className="rounded-lg border border-gray-200 p-3 text-sm">
-                      {routeError ? (
-                        <p className="text-red-600">{routeError}</p>
-                      ) : routeResult ? (
-                        <div className="space-y-1">
-                          <div className="font-medium text-gray-900">
-                            {SEARCH_PANEL_LABELS.ROUTE_INFO}
-                          </div>
-                          <div className="text-gray-600">
-                            {SEARCH_PANEL_LABELS.DISTANCE}{" "}
-                            <span className="font-medium">
-                              {(routeResult.distance / 1000).toFixed(
-                                routeResult.distance >= 10000 ? 1 : 2,
-                              )}{" "}
-                              {SEARCH_PANEL_LABELS.KM}
-                            </span>
-                          </div>
-                          <div className="text-gray-600">
-                            {SEARCH_PANEL_LABELS.DURATION}{" "}
-                            <span className="font-medium">
-                              {Math.round(routeResult.duration / 60)}{" "}
-                              {SEARCH_PANEL_LABELS.MINUTES}
-                            </span>
-                          </div>
+                    {routeResult && (
+                      <ResultCard
+                        error={routeError}
+                        data={routeResult}
+                        emptyMessage={SEARCH_PANEL_LABELS.NO_SELECTION}
+                      >
+                        <div className="font-medium text-gray-900">
+                          {SEARCH_PANEL_LABELS.ROUTE_INFO}
                         </div>
-                      ) : (
-                        <p className="text-gray-500">
-                          {SEARCH_PANEL_LABELS.NO_SELECTION}
-                        </p>
-                      )}
-                    </div>
+                        <div className="text-gray-600">
+                          {SEARCH_PANEL_LABELS.DISTANCE}{" "}
+                          <span className="font-medium">
+                            {(routeResult.distance / 1000).toFixed(
+                              routeResult.distance >= 10000 ? 1 : 2,
+                            )}{" "}
+                            {SEARCH_PANEL_LABELS.KM}
+                          </span>
+                        </div>
+                        <div className="text-gray-600">
+                          {SEARCH_PANEL_LABELS.DURATION}{" "}
+                          <span className="font-medium">
+                            {Math.round(routeResult.duration / 60)}{" "}
+                            {SEARCH_PANEL_LABELS.MINUTES}
+                          </span>
+                        </div>
+                      </ResultCard>
+                    )}
 
                     <button
                       type="button"
@@ -282,50 +301,17 @@ export default function InfoPanel({
 
             {activeTab === "simulation" ? (
               <div className="space-y-3">
-                <div>
-                  <label className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                    {SIMULATION_PANEL_LABELS.DEVICE_LABEL}
-                  </label>
-                  <select
-                    value={simDevice ? simDevice.id : ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      onSimReset?.();
-
-                      if (value) {
-                        const device = devices.find((d) => d.id === value);
-                        if (device) {
-                          onSimDeviceSelect?.(device);
-                          onSelectDevice?.(device.id);
-                        }
-                      } else {
-                        onSimDeviceSelect?.(null);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
-                  >
-                    <option value="">
-                      {SIMULATION_PANEL_LABELS.DEVICE_PLACEHOLDER}
-                    </option>
-                    {devices.map((device) => (
-                      <option key={device.id} value={device.id}>
-                        {device.name} ({device.device_id || device.id})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {simDevice && (
-                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
-                    <div className="text-xs font-medium text-gray-600">
-                      Điểm bắt đầu:
-                    </div>
-                    <div className="font-medium mt-1">{simDevice.name}</div>
-                    <div className="text-xs text-gray-600">
-                      {simDevice.address}
-                    </div>
-                  </div>
-                )}
+                <DeviceSelector
+                  value={simDevice}
+                  onChange={(device) => {
+                    onSimReset?.();
+                    onSelectDevice?.(device.id);
+                  }}
+                  onSelectGlobal={onSelectDevice}
+                  devices={devices}
+                  label={SIMULATION_PANEL_LABELS.DEVICE_LABEL}
+                  placeholder={SIMULATION_PANEL_LABELS.DEVICE_PLACEHOLDER}
+                />
 
                 <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
                   <AutoComplete
@@ -370,43 +356,141 @@ export default function InfoPanel({
                     )}
                 </div>
 
-                {simPlaying ? (
-                  <button
-                    type="button"
-                    onClick={onSimStop}
-                    className="w-full px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
-                  >
-                    {SIMULATION_PANEL_LABELS.STOP_BUTTON}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        routeResult &&
-                        routeResult.latlngs &&
-                        routeResult.latlngs.length > 0
-                      ) {
-                        onSimStart?.(routeResult.latlngs, simDuration);
-                      }
-                    }}
-                    disabled={
-                      !routeResult ||
-                      !routeResult.latlngs ||
-                      routeResult.latlngs.length === 0
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      routeResult &&
+                      routeResult.latlngs &&
+                      routeResult.latlngs.length > 0
+                    ) {
+                      onSimStart?.(routeResult.latlngs, simDuration);
                     }
-                    className={[
-                      "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors",
-                      !routeResult ||
-                      !routeResult.latlngs ||
-                      routeResult.latlngs.length === 0
-                        ? "bg-gray-300 cursor-not-allowed"
-                        : "bg-green-600 hover:bg-green-700",
-                    ].join(" ")}
-                  >
-                    {SIMULATION_PANEL_LABELS.PLAY_BUTTON}
-                  </button>
-                )}
+                  }}
+                  disabled={
+                    !routeResult ||
+                    !routeResult.latlngs ||
+                    routeResult.latlngs.length === 0 ||
+                    simPlaying
+                  }
+                  className={[
+                    "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors",
+                    !routeResult ||
+                    !routeResult.latlngs ||
+                    routeResult.latlngs.length === 0 ||
+                    simPlaying
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700",
+                  ].join(" ")}
+                >
+                  {simPlaying
+                    ? SIMULATION_PANEL_LABELS.PLAYING
+                    : SIMULATION_PANEL_LABELS.PLAY_BUTTON}
+                </button>
+              </div>
+            ) : null}
+
+            {activeTab === "history" ? (
+              <div className="space-y-3">
+                <DeviceSelector
+                  value={historyDevice}
+                  onChange={(device) => {
+                    onSelectDevice?.(device.id);
+                    onHistoryClear?.();
+                  }}
+                  onSelectGlobal={onSelectDevice}
+                  devices={devices}
+                  label={HISTORY_PANEL_LABELS.DEVICE_LABEL}
+                  placeholder={HISTORY_PANEL_LABELS.DEVICE_PLACEHOLDER}
+                />
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {HISTORY_PANEL_LABELS.START_TIME_LABEL}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={historyStartTime || ""}
+                      onChange={(e) =>
+                        onHistoryStartTimeChange?.(e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {HISTORY_PANEL_LABELS.END_TIME_LABEL}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={historyEndTime || ""}
+                      onChange={(e) => onHistoryEndTimeChange?.(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (historyDevice) {
+                      onHistorySearch?.(
+                        historyDevice.id,
+                        historyStartTime,
+                        historyEndTime,
+                      );
+                    }
+                  }}
+                  disabled={!historyDevice || historyLoading}
+                  className={[
+                    "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors",
+                    !historyDevice || historyLoading
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700",
+                  ].join(" ")}
+                >
+                  {historyLoading
+                    ? HISTORY_PANEL_LABELS.SEARCHING
+                    : HISTORY_PANEL_LABELS.SEARCH_BUTTON}
+                </button>
+
+                {historyError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="text-sm text-red-600">{historyError}</p>
+                  </div>
+                ) : historyData ? (
+                  <div className="rounded-lg border border-gray-200 p-3 space-y-2 text-sm">
+                    <div className="font-medium text-gray-900">
+                      {HISTORY_PANEL_LABELS.HISTORY_INFO}
+                    </div>
+                    <div className="text-gray-600">
+                      <span className="font-medium">
+                        {historyData.recordCount}
+                      </span>{" "}
+                      {HISTORY_PANEL_LABELS.RECORDS}
+                    </div>
+                    <div className="text-gray-600">
+                      {HISTORY_PANEL_LABELS.DURATION}{" "}
+                      <span className="font-medium">
+                        {Math.round(historyData.duration / 1000)} giây
+                      </span>
+                    </div>
+                    <div className="text-gray-600">
+                      Quãng đường:{" "}
+                      <span className="font-medium">
+                        {(historyData.distance / 1000).toFixed(2)} km
+                      </span>
+                    </div>
+                  </div>
+                ) : historyDevice ? (
+                  <div className="rounded-lg border border-gray-200 p-3">
+                    <p className="text-sm text-gray-500">
+                      {HISTORY_PANEL_LABELS.NO_HISTORY}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
