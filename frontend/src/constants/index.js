@@ -134,4 +134,6 @@ export const HISTORY_PANEL_LABELS = {
   HISTORY_INFO: "Lịch sử di chuyển",
   RECORDS: "bản ghi",
   DURATION: "Khoảng thời gian",
+  PLAY_BUTTON: "▶ Phát lịch sử",
+  PLAYING: "Đang phát lịch sử...",
 };

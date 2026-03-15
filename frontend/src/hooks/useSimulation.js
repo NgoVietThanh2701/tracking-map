@@ -5,12 +5,14 @@ export function useSimulation() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [latlngs, setLatlngs] = useState([]);
   const animationRef = useRef(null);
-  const startTimeRef = useRef(0);
-  const durationRef = useRef(0);
   const playingRef = useRef(false);
-  const lastSaveTimeRef = useRef(0);
-  const onMovementSaveRef = useRef(null);
-  const destinationRef = useRef(null);
+  const stateRef = useRef({
+    startTime: 0,
+    duration: 0,
+    lastSaveTime: 0,
+    onMovementSave: null,
+    destination: null,
+  });
 
   const stopInternal = useCallback(() => {
     if (animationRef.current != null) {
@@ -37,28 +39,29 @@ export function useSimulation() {
       setLatlngs(points);
       playingRef.current = true;
       setPlaying(true);
-      startTimeRef.current = performance.now();
-      durationRef.current = durationSeconds * 1000;
-      lastSaveTimeRef.current = 0;
-      onMovementSaveRef.current = onMovementSave;
-      destinationRef.current = destination;
+
+      const state = stateRef.current;
+      state.startTime = performance.now();
+      state.duration = durationSeconds * 1000;
+      state.lastSaveTime = 0;
+      state.onMovementSave = onMovementSave;
+      state.destination = destination;
 
       // Save initial position
-      if (onMovementSaveRef.current && points.length > 0) {
+      if (onMovementSave && points.length > 0) {
         const [lat, lng] = points[0];
-        onMovementSaveRef.current(lat, lng);
+        onMovementSave(lat, lng);
       }
 
       const step = (now) => {
-        if (!playingRef.current) {
-          return;
-        }
+        if (!playingRef.current) return;
 
-        const elapsed = now - startTimeRef.current;
+        const state = stateRef.current;
+        const elapsed = now - state.startTime;
         const progress =
-          durationRef.current <= 0
+          state.duration <= 0
             ? 1
-            : Math.min(1, Math.max(0, elapsed / durationRef.current));
+            : Math.min(1, Math.max(0, elapsed / state.duration));
 
         const totalSegments = points.length - 1;
         const position = progress * totalSegments;
@@ -66,9 +69,9 @@ export function useSimulation() {
 
         if (index >= totalSegments) {
           // Save final position with destination coordinates
-          if (onMovementSaveRef.current && destinationRef.current) {
-            const { lat, lng } = destinationRef.current;
-            onMovementSaveRef.current(lat, lng);
+          if (state.onMovementSave && state.destination) {
+            const { lat, lng } = state.destination;
+            state.onMovementSave(lat, lng);
           }
           setCurrentPosition(points[points.length - 1]);
           stopInternal();
@@ -83,16 +86,14 @@ export function useSimulation() {
         setCurrentPosition([lat, lng]);
 
         // Save movement record every 2 seconds
-        if (elapsed - lastSaveTimeRef.current >= 2000) {
-          lastSaveTimeRef.current = elapsed;
-          if (onMovementSaveRef.current) {
-            onMovementSaveRef.current(lat, lng);
+        if (elapsed - state.lastSaveTime >= 2000) {
+          state.lastSaveTime = elapsed;
+          if (state.onMovementSave) {
+            state.onMovementSave(lat, lng);
           }
         }
 
-        if (playingRef.current) {
-          animationRef.current = requestAnimationFrame(step);
-        }
+        animationRef.current = requestAnimationFrame(step);
       };
 
       animationRef.current = requestAnimationFrame(step);

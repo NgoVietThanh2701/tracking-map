@@ -78,6 +78,9 @@ export default function InfoPanel({
   historyData,
   onHistorySearch,
   onHistoryClear,
+  onHistoryPlayClick,
+  historyPlaybackDuration,
+  onHistoryPlaybackDurationChange,
 }) {
   const [activeTab, setActiveTab] = useState("devices");
   const [simDuration, setSimDuration] = useState(10);
@@ -86,11 +89,29 @@ export default function InfoPanel({
   // Set default history time range when switching to history tab
   useEffect(() => {
     if (activeTab === "history") {
-      const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      onHistoryStartTimeChange?.(startTime.toISOString().slice(0, 16));
-      onHistoryEndTimeChange?.(endTime.toISOString().slice(0, 16));
+      const formatter = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const formatTime = (date) =>
+        formatter
+          .formatToParts(date)
+          .map(({ type, value }) =>
+            type === "literal" && value === " " ? "T" : value,
+          )
+          .join("")
+          .slice(0, 16);
+
+      onHistoryStartTimeChange?.(formatTime(oneDayAgo));
+      onHistoryEndTimeChange?.(formatTime(now));
     }
   }, [activeTab, onHistoryStartTimeChange, onHistoryEndTimeChange]);
 
@@ -391,7 +412,7 @@ export default function InfoPanel({
             ) : null}
 
             {activeTab === "history" ? (
-              <div className="space-y-3">
+              <div className="space-y-3 flex flex-col h-full">
                 <DeviceSelector
                   value={historyDevice}
                   onChange={(device) => {
@@ -404,7 +425,7 @@ export default function InfoPanel({
                   placeholder={HISTORY_PANEL_LABELS.DEVICE_PLACEHOLDER}
                 />
 
-                <div className="space-y-2">
+                <div className="space-y-2 shrink-0">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       {HISTORY_PANEL_LABELS.START_TIME_LABEL}
@@ -445,7 +466,7 @@ export default function InfoPanel({
                   }}
                   disabled={!historyDevice || historyLoading}
                   className={[
-                    "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors",
+                    "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors shrink-0",
                     !historyDevice || historyLoading
                       ? "bg-gray-300 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700",
@@ -456,41 +477,78 @@ export default function InfoPanel({
                     : HISTORY_PANEL_LABELS.SEARCH_BUTTON}
                 </button>
 
-                {historyError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                    <p className="text-sm text-red-600">{historyError}</p>
-                  </div>
-                ) : historyData ? (
-                  <div className="rounded-lg border border-gray-200 p-3 space-y-2 text-sm">
-                    <div className="font-medium text-gray-900">
-                      {HISTORY_PANEL_LABELS.HISTORY_INFO}
+                <div className="flex-1 overflow-y-auto min-w-0 min-h-0">
+                  {historyError ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                      <p className="text-sm text-red-600">{historyError}</p>
                     </div>
-                    <div className="text-gray-600">
-                      <span className="font-medium">
-                        {historyData.recordCount}
-                      </span>{" "}
-                      {HISTORY_PANEL_LABELS.RECORDS}
+                  ) : historyData ? (
+                    <>
+                      <div className="rounded-lg border border-gray-200 p-3 space-y-2 text-sm">
+                        <div className="font-medium text-gray-900">
+                          {HISTORY_PANEL_LABELS.HISTORY_INFO}
+                        </div>
+                        <div className="text-gray-600">
+                          <span className="font-medium">
+                            {historyData.recordCount}
+                          </span>{" "}
+                          {HISTORY_PANEL_LABELS.RECORDS}
+                        </div>
+                        <div className="text-gray-600">
+                          {HISTORY_PANEL_LABELS.DURATION}{" "}
+                          <span className="font-medium">
+                            {Math.round(historyData.duration / 1000)} giây
+                          </span>
+                        </div>
+                        <div className="text-gray-600">
+                          Quãng đường:{" "}
+                          <span className="font-medium">
+                            {(historyData.distance / 1000).toFixed(2)} km
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          {SIMULATION_PANEL_LABELS.SPEED_LABEL}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={historyPlaybackDuration}
+                          onChange={(e) =>
+                            onHistoryPlaybackDurationChange?.(
+                              Number(e.target.value),
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={simPlaying}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onHistoryPlayClick?.(historyData)}
+                        disabled={simPlaying}
+                        className={[
+                          "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors",
+                          simPlaying
+                            ? "bg-gray-300 cursor-not-allowed"
+                            : "bg-green-600 hover:bg-green-700",
+                        ].join(" ")}
+                      >
+                        {simPlaying
+                          ? HISTORY_PANEL_LABELS.PLAYING
+                          : HISTORY_PANEL_LABELS.PLAY_BUTTON}
+                      </button>
+                    </>
+                  ) : historyDevice ? (
+                    <div className="rounded-lg border border-gray-200 p-3">
+                      <p className="text-sm text-gray-500">
+                        {HISTORY_PANEL_LABELS.NO_HISTORY}
+                      </p>
                     </div>
-                    <div className="text-gray-600">
-                      {HISTORY_PANEL_LABELS.DURATION}{" "}
-                      <span className="font-medium">
-                        {Math.round(historyData.duration / 1000)} giây
-                      </span>
-                    </div>
-                    <div className="text-gray-600">
-                      Quãng đường:{" "}
-                      <span className="font-medium">
-                        {(historyData.distance / 1000).toFixed(2)} km
-                      </span>
-                    </div>
-                  </div>
-                ) : historyDevice ? (
-                  <div className="rounded-lg border border-gray-200 p-3">
-                    <p className="text-sm text-gray-500">
-                      {HISTORY_PANEL_LABELS.NO_HISTORY}
-                    </p>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>

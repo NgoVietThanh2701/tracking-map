@@ -46,6 +46,11 @@ function App() {
   const previousSimPlayingRef = useRef(false);
   const shouldResetSimDestinationRef = useRef(false);
 
+  // State for history time range
+  const [historyStartTime, setHistoryStartTime] = useState(null);
+  const [historyEndTime, setHistoryEndTime] = useState(null);
+  const [historyPlaybackDuration, setHistoryPlaybackDuration] = useState(10);
+
   const selectedDevice = getSelectedDevice();
   const defaultCenter = MAP_CONFIG?.DEFAULT_CENTER || [21.0285, 105.8542]; // Hà Nội
 
@@ -134,9 +139,35 @@ function App() {
     setSimDestination(null);
   }, [resetSimulation, clearRoute]);
 
-  // State for history time range
-  const [historyStartTime, setHistoryStartTime] = useState(null);
-  const [historyEndTime, setHistoryEndTime] = useState(null);
+  const handleHistoryPlayClick = useCallback(
+    (historyData) => {
+      if (
+        !historyData ||
+        !historyData.latlngs ||
+        historyData.latlngs.length < 2
+      )
+        return;
+
+      // For history playback, don't save records and don't update device location
+      const noop = () => {};
+
+      console.log(
+        "Playing history with",
+        historyData.latlngs.length,
+        "points, duration:",
+        historyPlaybackDuration,
+        "seconds",
+      );
+
+      startSimulation(
+        historyData.latlngs,
+        historyPlaybackDuration,
+        noop,
+        undefined,
+      );
+    },
+    [startSimulation, historyPlaybackDuration],
+  );
 
   return (
     <div className="h-screen w-screen overflow-hidden relative">
@@ -189,6 +220,9 @@ function App() {
         historyData={historyData}
         onHistorySearch={getHistoryRoute}
         onHistoryClear={clearHistory}
+        onHistoryPlayClick={handleHistoryPlayClick}
+        historyPlaybackDuration={historyPlaybackDuration}
+        onHistoryPlaybackDurationChange={setHistoryPlaybackDuration}
       />
     </div>
   );

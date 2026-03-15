@@ -42,39 +42,23 @@ export function useOsrmRoute() {
     setRoute(null);
   }, []);
 
-  // Clean expired cache entries
-  const cleanExpiredCache = useCallback(() => {
+  // Clean expired cache entries and handle LRU eviction
+  const cleanCache = useCallback(() => {
     const now = Date.now();
-    const keysToDelete = [];
+    let oldestKey = null;
+    let oldestTime = now;
 
     for (const [key, timestamp] of cacheTimestampsRef.current.entries()) {
       if (now - timestamp > CACHE_TTL) {
-        keysToDelete.push(key);
-      }
-    }
-
-    keysToDelete.forEach((key) => {
-      cacheRef.current.delete(key);
-      cacheTimestampsRef.current.delete(key);
-    });
-  }, []);
-
-  // Implement LRU eviction if cache exceeds max size
-  const evictLRUIfNeeded = useCallback((currentSize) => {
-    if (currentSize < MAX_CACHE_SIZE) return;
-
-    // Find oldest entry by timestamp
-    let oldestKey = null;
-    let oldestTime = Date.now();
-
-    for (const [key, timestamp] of cacheTimestampsRef.current.entries()) {
-      if (timestamp < oldestTime) {
+        cacheRef.current.delete(key);
+        cacheTimestampsRef.current.delete(key);
+      } else if (timestamp < oldestTime) {
         oldestTime = timestamp;
         oldestKey = key;
       }
     }
 
-    if (oldestKey) {
+    if (cacheRef.current.size >= MAX_CACHE_SIZE && oldestKey) {
       cacheRef.current.delete(oldestKey);
       cacheTimestampsRef.current.delete(oldestKey);
     }
@@ -99,8 +83,8 @@ export function useOsrmRoute() {
 
       const cacheKey = `${fromKey}|${toKey}`;
 
-      // Clean expired entries before checking cache
-      cleanExpiredCache();
+      // Clean expired entries and handle LRU eviction in one pass
+      cleanCache();
 
       const cached = cacheRef.current.get(cacheKey);
       if (cached) {
@@ -134,9 +118,6 @@ export function useOsrmRoute() {
           return null;
         }
 
-        // Check cache size before adding
-        evictLRUIfNeeded(cacheRef.current.size);
-
         // Store route in cache with timestamp
         cacheRef.current.set(cacheKey, parsed);
         cacheTimestampsRef.current.set(cacheKey, Date.now());
@@ -152,7 +133,7 @@ export function useOsrmRoute() {
         setLoading(false);
       }
     },
-    [cleanExpiredCache, evictLRUIfNeeded],
+    [cleanCache],
   );
 
   return { loading, error, route, getRoute, clear };
