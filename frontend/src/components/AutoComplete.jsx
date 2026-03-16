@@ -14,16 +14,16 @@ const AutoComplete = memo(function AutoComplete({
 }) {
   const [query, setQuery] = useState(initialValue);
   const [focused, setFocused] = useState(false);
-  const [closedAfterSelect, setClosedAfterSelect] = useState(false);
-  const anchorRef = useRef(null);
   const [dropdownRect, setDropdownRect] = useState(null);
+  const anchorRef = useRef(null);
   const skipNextSearchRef = useRef(false);
+  const closedAfterSelectRef = useRef(false);
 
   const debounced = useDebounce(query, NOMINATIM_CONFIG.DEBOUNCE_MS);
   const { loading, error, items, search } = useNominatimSearch();
   const canSearch = debounced.trim().length >= minChars;
 
-  const showDropdown = focused && canSearch && !closedAfterSelect;
+  const showDropdown = focused && canSearch && !closedAfterSelectRef.current;
 
   useEffect(() => {
     if (!focused || !canSearch) {
@@ -48,13 +48,13 @@ const AutoComplete = memo(function AutoComplete({
 
   const selectItem = (place) => {
     skipNextSearchRef.current = true;
-    setClosedAfterSelect(true);
+    closedAfterSelectRef.current = true;
     setQuery(place.name);
     onSelect?.(place);
   };
 
   const clear = () => {
-    setClosedAfterSelect(false);
+    closedAfterSelectRef.current = false;
     setQuery("");
     setDropdownRect(null);
     onClear?.();
@@ -133,16 +133,19 @@ const AutoComplete = memo(function AutoComplete({
           type="text"
           value={query}
           onChange={(e) => {
-            setClosedAfterSelect(false);
+            closedAfterSelectRef.current = false;
             setQuery(e.target.value);
           }}
           onFocus={() => {
             setFocused(true);
-            setClosedAfterSelect(false);
+            closedAfterSelectRef.current = false;
           }}
           onBlur={() => {
             setFocused(false);
-            window.setTimeout(() => setClosedAfterSelect(false), 120);
+            window.setTimeout(
+              () => (closedAfterSelectRef.current = false),
+              120,
+            );
           }}
           placeholder={placeholder}
           autoComplete="off"

@@ -16,10 +16,16 @@ export const NOMINATIM_CONFIG = {
 };
 
 export const OSRM_CONFIG = {
-  PROXY_PATH: "/osrm/route/v1",
+  PROXY_PATH: "/nominatim/search",
   PROFILE: "driving",
   OVERVIEW: "simplified",
   GEOMETRIES: "geojson",
+};
+
+// Backend API Configuration
+export const BACKEND_API = {
+  BASE_URL: "http://127.0.0.1:5000",
+  ROUTE_ENDPOINT: "/api/route",
 };
 
 // Map Configuration

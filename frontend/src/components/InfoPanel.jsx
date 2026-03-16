@@ -11,6 +11,11 @@ import {
   SIMULATION_PANEL_LABELS,
   HISTORY_PANEL_LABELS,
 } from "../constants";
+import {
+  formatDistance,
+  formatDurationSeconds,
+  formatDurationMilliseconds,
+} from "../utils/format";
 
 function TabButton({ active, icon, label, onClick }) {
   return (
@@ -89,9 +94,6 @@ export default function InfoPanel({
   // Set default history time range when switching to history tab
   useEffect(() => {
     if (activeTab === "history") {
-      const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
       const formatter = new Intl.DateTimeFormat("sv-SE", {
         timeZone: "Asia/Ho_Chi_Minh",
         year: "numeric",
@@ -100,27 +102,21 @@ export default function InfoPanel({
         hour: "2-digit",
         minute: "2-digit",
       });
-
-      const formatTime = (date) =>
-        formatter
-          .formatToParts(date)
+      const formatTime = (date) => {
+        const parts = formatter.formatToParts(date);
+        return parts
           .map(({ type, value }) =>
             type === "literal" && value === " " ? "T" : value,
           )
           .join("")
           .slice(0, 16);
-
-      onHistoryStartTimeChange?.(formatTime(oneDayAgo));
-      onHistoryEndTimeChange?.(formatTime(now));
+      };
+      onHistoryStartTimeChange?.(
+        formatTime(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+      );
+      onHistoryEndTimeChange?.(formatTime(new Date()));
     }
   }, [activeTab, onHistoryStartTimeChange, onHistoryEndTimeChange]);
-
-  // Reset route UI when leaving search tab
-  useEffect(() => {
-    return () => {
-      setIsFindingRoute(false);
-    };
-  }, [activeTab]);
 
   // Clear route when navigating to devices tab
   useEffect(() => {
@@ -129,25 +125,32 @@ export default function InfoPanel({
     }
   }, [activeTab, onRouteClear]);
 
-  // Reset simulation state and duration when leaving simulation tab
+  // Reset route UI when leaving search tab
   useEffect(() => {
     return () => {
-      setSimDuration(10);
+      if (activeTab === "search") {
+        setIsFindingRoute(false);
+      }
     };
   }, [activeTab]);
 
   // Reset simulation when leaving simulation tab
   useEffect(() => {
-    if (activeTab !== "simulation") {
-      onSimReset?.();
-    }
+    return () => {
+      if (activeTab === "simulation") {
+        setSimDuration(10);
+        onSimReset?.();
+      }
+    };
   }, [activeTab, onSimReset]);
 
   // Clear history when leaving history tab
   useEffect(() => {
-    if (activeTab !== "history") {
-      onHistoryClear?.();
-    }
+    return () => {
+      if (activeTab === "history") {
+        onHistoryClear?.();
+      }
+    };
   }, [activeTab, onHistoryClear]);
 
   const isSearchRouteButtonDisabled =
@@ -292,16 +295,14 @@ export default function InfoPanel({
                         <div className="text-gray-600">
                           {SEARCH_PANEL_LABELS.DISTANCE}{" "}
                           <span className="font-medium">
-                            {(routeResult.distance / 1000).toFixed(
-                              routeResult.distance >= 10000 ? 1 : 2,
-                            )}{" "}
+                            {formatDistance(routeResult.distance)}{" "}
                             {SEARCH_PANEL_LABELS.KM}
                           </span>
                         </div>
                         <div className="text-gray-600">
                           {SEARCH_PANEL_LABELS.DURATION}{" "}
                           <span className="font-medium">
-                            {Math.round(routeResult.duration / 60)}{" "}
+                            {formatDurationSeconds(routeResult.duration)}{" "}
                             {SEARCH_PANEL_LABELS.MINUTES}
                           </span>
                         </div>
@@ -413,19 +414,25 @@ export default function InfoPanel({
 
             {activeTab === "history" ? (
               <div className="space-y-3 flex flex-col h-full">
-                <DeviceSelector
-                  value={historyDevice}
-                  onChange={(device) => {
-                    onSelectDevice?.(device.id);
-                    onHistoryClear?.();
-                  }}
-                  onSelectGlobal={onSelectDevice}
-                  devices={devices}
-                  label={HISTORY_PANEL_LABELS.DEVICE_LABEL}
-                  placeholder={HISTORY_PANEL_LABELS.DEVICE_PLACEHOLDER}
-                />
+                <div
+                  className={simPlaying ? "opacity-50 pointer-events-none" : ""}
+                >
+                  <DeviceSelector
+                    value={historyDevice}
+                    onChange={(device) => {
+                      onSelectDevice?.(device.id);
+                      onHistoryClear?.();
+                    }}
+                    onSelectGlobal={onSelectDevice}
+                    devices={devices}
+                    label={HISTORY_PANEL_LABELS.DEVICE_LABEL}
+                    placeholder={HISTORY_PANEL_LABELS.DEVICE_PLACEHOLDER}
+                  />
+                </div>
 
-                <div className="space-y-2 shrink-0">
+                <div
+                  className={`space-y-2 shrink-0 ${simPlaying ? "opacity-50 pointer-events-none" : ""}`}
+                >
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       {HISTORY_PANEL_LABELS.START_TIME_LABEL}
@@ -436,7 +443,8 @@ export default function InfoPanel({
                       onChange={(e) =>
                         onHistoryStartTimeChange?.(e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={simPlaying}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -448,7 +456,8 @@ export default function InfoPanel({
                       type="datetime-local"
                       value={historyEndTime || ""}
                       onChange={(e) => onHistoryEndTimeChange?.(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={simPlaying}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -464,10 +473,10 @@ export default function InfoPanel({
                       );
                     }
                   }}
-                  disabled={!historyDevice || historyLoading}
+                  disabled={!historyDevice || historyLoading || simPlaying}
                   className={[
                     "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors shrink-0",
-                    !historyDevice || historyLoading
+                    !historyDevice || historyLoading || simPlaying
                       ? "bg-gray-300 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700",
                   ].join(" ")}
@@ -497,13 +506,14 @@ export default function InfoPanel({
                         <div className="text-gray-600">
                           {HISTORY_PANEL_LABELS.DURATION}{" "}
                           <span className="font-medium">
-                            {Math.round(historyData.duration / 1000)} giây
+                            {formatDurationMilliseconds(historyData.duration)}{" "}
+                            giây
                           </span>
                         </div>
                         <div className="text-gray-600">
                           Quãng đường:{" "}
                           <span className="font-medium">
-                            {(historyData.distance / 1000).toFixed(2)} km
+                            {formatDistance(historyData.distance)} km
                           </span>
                         </div>
                       </div>

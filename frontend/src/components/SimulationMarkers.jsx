@@ -2,6 +2,24 @@ import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 
+const SIMULATION_MARKER_STYLES = {
+  size: 28,
+  anchor: [14, 32],
+  inner: {
+    width: 24,
+    height: 24,
+    shadow: "0 4px 12px rgba(0,0,0,0.25)",
+  },
+};
+
+function createSimulationMarkerHTML() {
+  return `
+    <div style="width: ${SIMULATION_MARKER_STYLES.size}px; height: 32px; display: flex; align-items: center; justify-content: center;">
+      <div style="width: ${SIMULATION_MARKER_STYLES.inner.width}px; height: ${SIMULATION_MARKER_STYLES.inner.height}px; border-radius: 9999px; background: #2563eb; border: 2px solid white; box-shadow: ${SIMULATION_MARKER_STYLES.inner.shadow}; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;">🚚</div>
+    </div>
+  `;
+}
+
 export default function SimulationMarkers({ position }) {
   const map = useMap();
   const markerRef = useRef(null);
@@ -16,36 +34,11 @@ export default function SimulationMarkers({ position }) {
     }
 
     const [lat, lng] = position;
-
     const icon = L.divIcon({
       className: "",
-      iconSize: [28, 32],
-      iconAnchor: [14, 32],
-      html: `
-        <div style="
-          width: 28px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <div style="
-            width: 24px;
-            height: 24px;
-            border-radius: 9999px;
-            background: #2563eb;
-            border: 2px solid white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 16px;
-          ">
-            🚚
-          </div>
-        </div>
-      `,
+      iconSize: [SIMULATION_MARKER_STYLES.size, 32],
+      iconAnchor: SIMULATION_MARKER_STYLES.anchor,
+      html: createSimulationMarkerHTML(),
     });
 
     if (markerRef.current) {

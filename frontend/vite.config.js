@@ -7,16 +7,16 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/nominatim': {
-        target: 'https://nominatim.openstreetmap.org',
+      "/nominatim": {
+        target: "https://nominatim.openstreetmap.org",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/nominatim/, ''),
+        rewrite: (path) => path.replace(/^\/nominatim/, ""),
       },
-      '/osrm': {
-        target: 'https://router.project-osrm.org',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/osrm/, ''),
-      },
+      // "/osrm": {
+      //   target: "https://router.project-osrm.org",
+      //   changeOrigin: true,
+      //   rewrite: (path) => path.replace(/^\/osrm/, ""),
+      // },
     },
   },
 });

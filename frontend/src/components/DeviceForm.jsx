@@ -2,33 +2,30 @@ import { memo, useState } from "react";
 import AutoComplete from "./AutoComplete";
 
 const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
-  const [formData, setFormData] = useState({
-    name: "",
-    selectedPlace: null,
-  });
+  const [name, setName] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const [loading, setLoading] = useState(false);
   const [clearCounter, setClearCounter] = useState(0);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setName(e.target.value);
   };
 
   const handlePlaceSelect = (place) => {
-    setFormData((prev) => ({ ...prev, selectedPlace: place }));
+    setSelectedPlace(place);
   };
 
   const handleClearPlace = () => {
-    setFormData((prev) => ({ ...prev, selectedPlace: null }));
+    setSelectedPlace(null);
   };
 
   const handleAddDevice = async () => {
-    if (!formData.name.trim()) {
+    if (!name.trim()) {
       alert("Vui lòng nhập tên thiết bị");
       return;
     }
 
-    if (!formData.selectedPlace) {
+    if (!selectedPlace) {
       alert("Vui lòng chọn vị trí cho thiết bị");
       return;
     }
@@ -36,17 +33,15 @@ const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
     setLoading(true);
     try {
       await onAddDevice({
-        name: formData.name.trim(),
-        latitude: formData.selectedPlace.lat,
-        longitude: formData.selectedPlace.lng,
-        address: formData.selectedPlace.name,
+        name: name.trim(),
+        latitude: selectedPlace.lat,
+        longitude: selectedPlace.lng,
+        address: selectedPlace.name,
       });
 
       // Reset form
-      setFormData({
-        name: "",
-        selectedPlace: null,
-      });
+      setName("");
+      setSelectedPlace(null);
       setClearCounter((prev) => prev + 1);
     } catch (error) {
       alert("Có lỗi xảy ra khi thêm thiết bị");
@@ -68,8 +63,7 @@ const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
         <input
           id="device-name"
           type="text"
-          name="name"
-          value={formData.name}
+          value={name}
           onChange={handleInputChange}
           placeholder="VD: Xe tải A, Xe máy B..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -90,12 +84,11 @@ const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
         />
       </div>
 
-      {formData.selectedPlace && (
+      {selectedPlace && (
         <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
-          <div className="font-medium">{formData.selectedPlace.name}</div>
+          <div className="font-medium">{selectedPlace.name}</div>
           <div className="text-xs text-gray-600 mt-1">
-            {formData.selectedPlace.lat.toFixed(6)},{" "}
-            {formData.selectedPlace.lng.toFixed(6)}
+            {selectedPlace.lat.toFixed(6)}, {selectedPlace.lng.toFixed(6)}
           </div>
         </div>
       )}
