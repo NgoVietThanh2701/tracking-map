@@ -1,17 +1,65 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"sync"
+	"time"
 
 	"ngovietthanh27/tracking-map/config"
 	"ngovietthanh27/tracking-map/models"
+
+	"github.com/redis/go-redis/v9"
 )
 
+var (
+	redisOnce   sync.Once
+	redisClient *redis.Client
+)
+
+func getRedisClient() *redis.Client {
+	redisOnce.Do(func() {
+		addr := os.Getenv("REDIS_ADDR")
+		if addr == "" {
+			// If not configured, caching stays disabled.
+			return
+		}
+
+		redisClient = redis.NewClient(&redis.Options{
+			Addr:     addr,
+			Password: os.Getenv("REDIS_PASSWORD"),
+		})
+	})
+
+	return redisClient
+}
+
 func GetRoute(from, to models.RoutePoint) (*models.RouteResponse, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf(
+		"osrm:route:%s:%s:%s:%.6f,%.6f:%.6f,%.6f:overview=simplified:geometries=geojson:steps=false",
+		config.OSRMVersion,
+		config.OSRMProfile,
+		"v1",
+		from.Lat, from.Lng,
+		to.Lat, to.Lng,
+	)
+
+	// CACHE: Try to serve route from Redis (TTL 60s)
+	if rdb := getRedisClient(); rdb != nil {
+		if cached, err := rdb.Get(ctx, cacheKey).Bytes(); err == nil && len(cached) > 0 {
+			var route models.RouteResponse
+			if err := json.Unmarshal(cached, &route); err == nil {
+				return &route, nil
+			}
+		}
+	}
+
 	// Build OSRM URL
 	coords := fmt.Sprintf("%f,%f;%f,%f", from.Lng, from.Lat, to.Lng, to.Lat)
 	osrmURL := fmt.Sprintf(
@@ -65,9 +113,18 @@ func GetRoute(from, to models.RoutePoint) (*models.RouteResponse, error) {
 		}
 	}
 
-	return &models.RouteResponse{
+	routeResp := &models.RouteResponse{
 		Distance: route.Distance,
 		Duration: route.Duration,
 		LatLngs:  latLngs,
-	}, nil
+	}
+
+	// CACHE: Store computed route to Redis for 60 seconds
+	if rdb := getRedisClient(); rdb != nil {
+		if b, err := json.Marshal(routeResp); err == nil {
+			_ = rdb.Set(ctx, cacheKey, b, 60*time.Second).Err()
+		}
+	}
+
+	return routeResp, nil
 }
