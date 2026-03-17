@@ -1,4 +1,6 @@
 import * as deviceAPI from "../api/device";
+import { transformDevices, transformDevice } from "../utils/deviceTransform";
+import { ERROR_MESSAGES } from "../constants";
 
 /**
  * Device Service - handles business logic for device management
@@ -11,25 +13,9 @@ class DeviceService {
   async getAllDevices() {
     try {
       const devices = await deviceAPI.getDevices();
-      // Ensure devices have the required fields for UI
-      return Array.isArray(devices)
-        ? devices.map((device) => ({
-            id: device.id,
-            device_id: device.id,
-            uuid: device.uuid,
-            name: device.name,
-            latitude: device.latitude,
-            longitude: device.longitude,
-            address: device.address || "",
-            timestamp:
-              device.updated_at ||
-              device.created_at ||
-              new Date().toISOString(),
-            selected: false,
-          }))
-        : [];
+      return transformDevices(devices);
     } catch (error) {
-      console.error("Error fetching devices:", error);
+      console.error(ERROR_MESSAGES.FETCH_DEVICES, error);
       throw error;
     }
   }
@@ -39,29 +25,10 @@ class DeviceService {
    */
   async createDevice(deviceData) {
     try {
-      const newDevice = await deviceAPI.createDevice({
-        name: deviceData.name,
-        latitude: deviceData.latitude,
-        longitude: deviceData.longitude,
-        address: deviceData.address,
-      });
-
-      // Transform response to match UI expectations
-      return {
-        id: newDevice.id,
-        device_id: newDevice.id,
-        name: newDevice.name,
-        latitude: newDevice.latitude,
-        longitude: newDevice.longitude,
-        address: newDevice.address || "",
-        timestamp:
-          newDevice.updated_at ||
-          newDevice.created_at ||
-          new Date().toISOString(),
-        selected: false,
-      };
+      const newDevice = await deviceAPI.createDevice(deviceData);
+      return transformDevice(newDevice);
     } catch (error) {
-      console.error("Error creating device:", error);
+      console.error(ERROR_MESSAGES.CREATE_DEVICE, error);
       throw error;
     }
   }
@@ -74,7 +41,7 @@ class DeviceService {
       await deviceAPI.deleteDevice(deviceId);
       return deviceId;
     } catch (error) {
-      console.error("Error deleting device:", error);
+      console.error(ERROR_MESSAGES.DELETE_DEVICE, error);
       throw error;
     }
   }
@@ -90,21 +57,9 @@ class DeviceService {
         longitude,
       });
 
-      return {
-        id: updatedDevice.id,
-        device_id: updatedDevice.id,
-        name: updatedDevice.name,
-        latitude: updatedDevice.latitude,
-        longitude: updatedDevice.longitude,
-        address: updatedDevice.address || "",
-        timestamp:
-          updatedDevice.updated_at ||
-          updatedDevice.created_at ||
-          new Date().toISOString(),
-        selected: false,
-      };
+      return transformDevice(updatedDevice);
     } catch (error) {
-      console.error("Error updating device address:", error);
+      console.error(ERROR_MESSAGES.UPDATE_DEVICE, error);
       throw error;
     }
   }

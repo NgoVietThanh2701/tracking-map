@@ -9,6 +9,7 @@ import {
   createSequenceMarkerIcon,
 } from "../constants/markerIcons";
 import { cleanupMapLayers } from "../utils/mapCleanup";
+import { formatDistance } from "../utils/format";
 
 export default function HistoryRoute({ historyData }) {
   const map = useMap();
@@ -46,8 +47,7 @@ export default function HistoryRoute({ historyData }) {
     }).addTo(map);
 
     // Add distance label
-    const km = historyData.distance / 1000;
-    const kmText = `${km.toFixed(km >= 10 ? 1 : 2)} km`;
+    const kmText = `${formatDistance(historyData.distance)} km`;
     labelRef.current = L.marker(mid, {
       icon: buildDistanceIcon(kmText),
       interactive: false,

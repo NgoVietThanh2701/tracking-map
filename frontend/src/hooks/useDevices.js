@@ -1,18 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import deviceService from "../services/deviceService";
-
-const MOVEMENT_HISTORY_PREFIX = "tracking_map_movement_";
-const SELECTED_DEVICE_KEY = "tracking_map_selected_device_id";
-
-// Helper functions for localStorage (for movement history)
-const safeJsonParse = (json, fallback = null) => {
-  try {
-    return json ? JSON.parse(json) : fallback;
-  } catch (error) {
-    console.error("Failed to parse JSON:", error);
-    return fallback;
-  }
-};
+import { STORAGE_KEYS, ERROR_MESSAGES } from "../constants";
 
 export function useDevices() {
   const [devices, setDevices] = useState([]);
@@ -28,7 +16,9 @@ export function useDevices() {
         const data = await deviceService.getAllDevices();
 
         // Get previously selected device ID from localStorage
-        const savedSelectedId = localStorage.getItem(SELECTED_DEVICE_KEY);
+        const savedSelectedId = localStorage.getItem(
+          STORAGE_KEYS.SELECTED_DEVICE_ID,
+        );
 
         // Mark device as selected if it exists in the new data
         const devicesWithSelection = data.map((d) => ({
@@ -40,7 +30,7 @@ export function useDevices() {
 
         setDevices(devicesWithSelection);
       } catch (err) {
-        console.error("Failed to fetch devices:", err);
+        console.error(ERROR_MESSAGES.FETCH_DEVICES, err);
         setError(err.message);
         setDevices([]);
       } finally {
@@ -75,20 +65,13 @@ export function useDevices() {
       await deviceService.deleteDevice(id);
       setDevices((prev) => prev.filter((d) => d.id !== id));
 
-      // Clean up movement history
-      try {
-        localStorage.removeItem(`${MOVEMENT_HISTORY_PREFIX}${id}`);
-      } catch (err) {
-        console.error("Failed to remove movement history:", err);
-      }
-
       // If removed device was selected, clear from localStorage
-      const selectedId = localStorage.getItem(SELECTED_DEVICE_KEY);
+      const selectedId = localStorage.getItem(STORAGE_KEYS.SELECTED_DEVICE_ID);
       if (selectedId && parseInt(selectedId, 10) === id) {
-        localStorage.removeItem(SELECTED_DEVICE_KEY);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_DEVICE_ID);
       }
     } catch (err) {
-      console.error("Failed to remove device:", err);
+      console.error(ERROR_MESSAGES.REMOVE_DEVICE, err);
       setError(err.message);
       throw err;
     }
@@ -102,7 +85,7 @@ export function useDevices() {
       })),
     );
     // Save selected device ID to localStorage
-    localStorage.setItem(SELECTED_DEVICE_KEY, String(id));
+    localStorage.setItem(STORAGE_KEYS.SELECTED_DEVICE_ID, String(id));
   }, []);
 
   const getSelectedDevice = useCallback(() => {
@@ -137,29 +120,6 @@ export function useDevices() {
     }
   }, []);
 
-  const saveMovementRecord = useCallback((deviceId, latitude, longitude) => {
-    try {
-      const historyKey = `${MOVEMENT_HISTORY_PREFIX}${deviceId}`;
-      const records = safeJsonParse(localStorage.getItem(historyKey), []);
-      records.push({
-        device_id: deviceId,
-        latitude,
-        longitude,
-        timestamp: Date.now(),
-      });
-      localStorage.setItem(historyKey, JSON.stringify(records));
-    } catch (error) {
-      console.error("Failed to save movement record:", error);
-    }
-  }, []);
-
-  const getMovementHistory = useCallback((deviceId) => {
-    return safeJsonParse(
-      localStorage.getItem(`${MOVEMENT_HISTORY_PREFIX}${deviceId}`),
-      [],
-    );
-  }, []);
-
   return {
     devices,
     loading,
@@ -169,7 +129,5 @@ export function useDevices() {
     selectDevice,
     getSelectedDevice,
     updateDevice,
-    saveMovementRecord,
-    getMovementHistory,
   };
 }

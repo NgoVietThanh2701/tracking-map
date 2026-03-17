@@ -10,6 +10,7 @@ type DeviceRepository interface {
 	Create(device *models.Device) error
 	DeleteByID(id int64) error
 	GetAll() ([]models.Device, error)
+	GetByID(id int64) (*models.Device, error)
 	UpdateByID(id int64, device *models.Device) error
 }
 
@@ -35,6 +36,17 @@ func (r *deviceRepository) GetAll() ([]models.Device, error) {
 		return nil, err
 	}
 	return devices, nil
+}
+
+func (r *deviceRepository) GetByID(id int64) (*models.Device, error) {
+	var device models.Device
+	if err := r.db.First(&device, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &device, nil
 }
 
 func (r *deviceRepository) UpdateByID(id int64, device *models.Device) error {

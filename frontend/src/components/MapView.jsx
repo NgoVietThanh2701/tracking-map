@@ -15,6 +15,7 @@ import {
 import { cleanupMapLayers } from "../utils/mapCleanup";
 import DeviceMarker from "./DeviceMarker";
 import HistoryRoute from "./HistoryRoute";
+import { formatDistance } from "../utils/format";
 
 function SearchMarker({ searchPlace }) {
   const map = useMap();
@@ -81,8 +82,7 @@ function RouteLayer({ route, hideStartPin = false }) {
       icon: buildEndPinIcon(),
     }).addTo(map);
 
-    const km = route.distance / 1000;
-    const kmText = `${km.toFixed(km >= 10 ? 1 : 2)} km`;
+    const kmText = `${formatDistance(route.distance)} km`;
     labelRef.current = L.marker(mid, {
       icon: buildDistanceIcon(kmText),
       interactive: false,

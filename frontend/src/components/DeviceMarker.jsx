@@ -52,7 +52,7 @@ export default function DeviceMarker({ device }) {
       markerRef.current.bindPopup(`
         <div style="font-size: 12px; min-width: 150px;">
           <div style="font-weight: bold; margin-bottom: 4px;">${device.name}</div>
-          <div style="color: #666; margin-bottom: 4px;">ID: ${device.device_id || device.id}</div>
+          <div style="color: #666; margin-bottom: 4px;">ID: ${device.id}</div>
           <div style="color: #666; margin-bottom: 4px; font-size: 11px; max-width: 150px; word-break: break-word;">📍 ${device.address}</div>
           <div style="color: #666; font-size: 10px; margin-top: 4px;">${new Date(device.timestamp).toLocaleString("vi-VN")}</div>
         </div>

@@ -68,31 +68,6 @@ export const PANEL_TITLES = {
   },
 };
 
-export const DEVICE_FORM_LABELS = {
-  NAME: "Tên thiết bị",
-  NAME_PLACEHOLDER: "VD: Xe tải A, Xe máy B...",
-  LOCATION: "Tìm kiếm vị trí",
-  LOCATION_PLACEHOLDER: "Nhập địa chỉ để tìm vị trí",
-  ADD_BUTTON: "➕ Thêm thiết bị",
-  ADDING: "Đang thêm...",
-};
-
-export const DEVICE_LIST_LABELS = {
-  EMPTY: "Chưa có thiết bị nào được thêm",
-  DEVICE_COUNT: "Danh sách thiết bị",
-  SELECT_LABEL: "Chọn thiết bị",
-  SELECT_PLACEHOLDER: "-- Chọn thiết bị --",
-  DELETE: "✕",
-  SELECTED_BADGE: "Đã chọn",
-};
-
-export const DEVICE_INFO_LABELS = {
-  LATITUDE: "Vĩ độ",
-  LONGITUDE: "Kinh độ",
-  ADDRESS: "Địa chỉ",
-  ADDED_DATE: "Thêm vào",
-};
-
 export const SEARCH_PANEL_LABELS = {
   INPUT_LABEL: "Nhập địa chỉ",
   INPUT_PLACEHOLDER: "Ví dụ: 1 Võ Văn Ngân, Thủ Đức…",
@@ -136,4 +111,22 @@ export const HISTORY_PANEL_LABELS = {
   DURATION: "Khoảng thời gian",
   PLAY_BUTTON: "▶ Phát lịch sử",
   PLAYING: "Đang phát lịch sử...",
+};
+
+// LocalStorage Keys
+export const STORAGE_KEYS = {
+  SELECTED_DEVICE_ID: "tracking_map_selected_device_id",
+};
+
+// Error Messages
+export const ERROR_MESSAGES = {
+  FETCH_DEVICES: "Failed to fetch devices",
+  CREATE_DEVICE: "Failed to create device",
+  DELETE_DEVICE: "Failed to delete device",
+  UPDATE_DEVICE: "Failed to update device address",
+  ADD_DEVICE: "Có lỗi xảy ra khi thêm thiết bị",
+  REMOVE_DEVICE: "Failed to remove device",
+  INVALID_DEVICE_NAME: "Vui lòng nhập tên thiết bị",
+  INVALID_LOCATION: "Vui lòng chọn vị trí cho thiết bị",
+  PERMISSION_DENIED: "Permission denied",
 };

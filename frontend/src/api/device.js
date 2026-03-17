@@ -1,4 +1,6 @@
 import axiosInstance from "./axios";
+import { handleApiError } from "../utils/apiErrorHandler";
+import { ERROR_MESSAGES } from "../constants";
 
 /**
  * Device API endpoints
@@ -10,7 +12,7 @@ export const getDevices = async () => {
     const response = await axiosInstance.get("/devices");
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.error || "Failed to fetch devices");
+    handleApiError(error, ERROR_MESSAGES.FETCH_DEVICES);
   }
 };
 
@@ -25,7 +27,7 @@ export const createDevice = async (deviceData) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.error || "Failed to create device");
+    handleApiError(error, ERROR_MESSAGES.CREATE_DEVICE);
   }
 };
 
@@ -35,7 +37,7 @@ export const deleteDevice = async (deviceId) => {
     const response = await axiosInstance.delete(`/devices/${deviceId}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.error || "Failed to delete device");
+    handleApiError(error, ERROR_MESSAGES.DELETE_DEVICE);
   }
 };
 
@@ -55,8 +57,6 @@ export const updateDeviceAddress = async (
     );
     return response.data;
   } catch (error) {
-    throw new Error(
-      error.response?.data?.error || "Failed to update device address",
-    );
+    handleApiError(error, ERROR_MESSAGES.UPDATE_DEVICE);
   }
 };

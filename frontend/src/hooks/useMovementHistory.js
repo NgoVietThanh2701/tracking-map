@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
-
-const MOVEMENT_HISTORY_PREFIX = "tracking_map_movement_";
+import historyService from "../services/historyService";
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -43,7 +42,7 @@ export function useMovementHistory() {
   const [error, setError] = useState(null);
   const [historyData, setHistoryData] = useState(null);
 
-  const getHistoryRoute = useCallback((deviceId, startTime, endTime) => {
+  const getHistoryRoute = useCallback(async (deviceId, startTime, endTime) => {
     if (!deviceId) {
       setError("Vui lòng chọn thiết bị");
       setHistoryData(null);
@@ -54,50 +53,53 @@ export function useMovementHistory() {
     setError(null);
 
     try {
-      const historyKey = `${MOVEMENT_HISTORY_PREFIX}${deviceId}`;
-      const history = localStorage.getItem(historyKey);
-
-      if (!history) {
-        setError("Không có lịch sử di chuyển cho thiết bị này");
-        setHistoryData(null);
-        return;
-      }
-
-      const allRecords = JSON.parse(history);
-      const startTimeMs = startTime ? new Date(startTime).getTime() : 0;
-      const endTimeMs = endTime ? new Date(endTime).getTime() : Date.now();
-
-      const filteredRecords = allRecords.filter(
-        (record) =>
-          record.timestamp >= startTimeMs && record.timestamp <= endTimeMs,
+      const histories = await historyService.getHistory(
+        deviceId,
+        startTime,
+        endTime,
       );
 
-      if (filteredRecords.length === 0) {
+      if (!histories || histories.length === 0) {
         setError("Không có lịch sử di chuyển trong khoảng thời gian được chọn");
         setHistoryData(null);
         return;
       }
 
-      const latlngs = filteredRecords.map((record) => [
-        record.latitude,
-        record.longitude,
-      ]);
+      const records = histories
+        .map((h) => ({
+          device_id: h.device_id,
+          latitude: Number(h.latitude),
+          longitude: Number(h.longitude),
+          timestamp: new Date(h.time_stamp).getTime(),
+        }))
+        .filter(
+          (r) =>
+            Number.isFinite(r.latitude) &&
+            Number.isFinite(r.longitude) &&
+            Number.isFinite(r.timestamp),
+        );
+
+      if (records.length === 0) {
+        setError("Không có lịch sử di chuyển hợp lệ để hiển thị");
+        setHistoryData(null);
+        return;
+      }
+
+      const latlngs = records.map((record) => [record.latitude, record.longitude]);
 
       const routeData = {
         latlngs,
-        records: filteredRecords,
+        records,
         distance: calculateTotalDistance(latlngs),
-        duration:
-          filteredRecords[filteredRecords.length - 1].timestamp -
-          filteredRecords[0].timestamp,
-        recordCount: filteredRecords.length,
+        duration: records[records.length - 1].timestamp - records[0].timestamp,
+        recordCount: records.length,
       };
 
       setHistoryData(routeData);
       setError(null);
     } catch (err) {
       console.error("Failed to get movement history:", err);
-      setError("Lỗi khi tải lịch sử di chuyển");
+      setError(err?.message || "Lỗi khi tải lịch sử di chuyển");
       setHistoryData(null);
     } finally {
       setLoading(false);

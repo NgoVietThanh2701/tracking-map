@@ -17,7 +17,6 @@ func main() {
 	godotenv.Load()
 
 	db := database.Connect()
-	_ = db // Reserved for future use
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)

@@ -17,8 +17,12 @@ func SetupRoutes(router *gin.Engine, db *gorm.DB) {
 	deviceService := services.NewDeviceService(deviceRepo)
 	deviceController := controllers.NewDeviceController(deviceService)
 
+	historyRepo := repository.NewHistoryRepository(db)
+	historyService := services.NewHistoryService(historyRepo)
+	historyController := controllers.NewHistoryController(historyService)
+
 	api := router.Group("/api/v1")
 	RouteAPIs(api, routeController)
-
 	DeviceAPIs(api, deviceController)
+	HistoryAPIs(api, historyController)
 }

@@ -1,5 +1,6 @@
 import { memo, useState } from "react";
 import AutoComplete from "./AutoComplete";
+import { ERROR_MESSAGES } from "../constants";
 
 const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
   const [name, setName] = useState("");
@@ -21,12 +22,12 @@ const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
 
   const handleAddDevice = async () => {
     if (!name.trim()) {
-      alert("Vui lòng nhập tên thiết bị");
+      alert(ERROR_MESSAGES.INVALID_DEVICE_NAME);
       return;
     }
 
     if (!selectedPlace) {
-      alert("Vui lòng chọn vị trí cho thiết bị");
+      alert(ERROR_MESSAGES.INVALID_LOCATION);
       return;
     }
 
@@ -44,7 +45,7 @@ const DeviceForm = memo(function DeviceForm({ onAddDevice }) {
       setSelectedPlace(null);
       setClearCounter((prev) => prev + 1);
     } catch (error) {
-      alert("Có lỗi xảy ra khi thêm thiết bị");
+      alert(ERROR_MESSAGES.ADD_DEVICE);
       console.error(error);
     } finally {
       setLoading(false);

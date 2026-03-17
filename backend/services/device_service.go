@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 
+	"ngovietthanh27/tracking-map/config"
 	"ngovietthanh27/tracking-map/models"
 	"ngovietthanh27/tracking-map/repository"
 
@@ -17,6 +18,20 @@ func NewDeviceService(deviceRepo repository.DeviceRepository) *DeviceService {
 	return &DeviceService{deviceRepo: deviceRepo}
 }
 
+// toDeviceResponse converts a Device model to DeviceResponse
+func toDeviceResponse(device *models.Device) *models.DeviceResponse {
+	return &models.DeviceResponse{
+		ID:        device.ID,
+		UUID:      device.UUID,
+		Name:      device.Name,
+		Latitude:  device.Latitude,
+		Longitude: device.Longitude,
+		Address:   device.Address,
+		CreatedAt: device.CreatedAt,
+		UpdatedAt: device.UpdatedAt,
+	}
+}
+
 func (s *DeviceService) CreateDevice(req models.CreateDeviceRequest) (*models.DeviceResponse, error) {
 	device := models.Device{
 		UUID:      uuid.New().String(),
@@ -27,24 +42,15 @@ func (s *DeviceService) CreateDevice(req models.CreateDeviceRequest) (*models.De
 	}
 
 	if err := s.deviceRepo.Create(&device); err != nil {
-		return nil, fmt.Errorf("failed to create device: %w", err)
+		return nil, fmt.Errorf("%s: %w", config.ErrFailedToCreate, err)
 	}
 
-	return &models.DeviceResponse{
-		ID:        device.ID,
-		UUID:      device.UUID,
-		Name:      device.Name,
-		Latitude:  device.Latitude,
-		Longitude: device.Longitude,
-		Address:   device.Address,
-		CreatedAt: device.CreatedAt,
-		UpdatedAt: device.UpdatedAt,
-	}, nil
+	return toDeviceResponse(&device), nil
 }
 
 func (s *DeviceService) DeleteDevice(id int64) error {
 	if err := s.deviceRepo.DeleteByID(id); err != nil {
-		return fmt.Errorf("failed to delete device: %w", err)
+		return fmt.Errorf("%s: %w", config.ErrFailedToDelete, err)
 	}
 	return nil
 }
@@ -52,63 +58,34 @@ func (s *DeviceService) DeleteDevice(id int64) error {
 func (s *DeviceService) GetAllDevices() ([]models.Device, error) {
 	devices, err := s.deviceRepo.GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get devices: %w", err)
+		return nil, fmt.Errorf("%s: %w", config.ErrFailedToFetch, err)
 	}
 	return devices, nil
 }
 
 func (s *DeviceService) UpdateDeviceAddress(id int64, req models.UpdateDeviceAddressRequest) (*models.DeviceResponse, error) {
-	// Get current device
-	devices, err := s.deviceRepo.GetAll()
+	// Get current device by ID (efficient query)
+	device, err := s.deviceRepo.GetByID(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch device: %w", err)
+		return nil, fmt.Errorf("%s: %w", config.ErrFailedToFetch, err)
 	}
 
-	var currentDevice *models.Device
-	for i := range devices {
-		if devices[i].ID == id {
-			currentDevice = &devices[i]
-			break
-		}
-	}
-
-	if currentDevice == nil {
-		return nil, fmt.Errorf("device not found")
+	if device == nil {
+		return nil, fmt.Errorf(config.ErrDeviceNotFound)
 	}
 
 	// Update fields that are provided
-	currentDevice.Address = req.Address
+	device.Address = req.Address
 	if req.Latitude != nil {
-		currentDevice.Latitude = *req.Latitude
+		device.Latitude = *req.Latitude
 	}
 	if req.Longitude != nil {
-		currentDevice.Longitude = *req.Longitude
+		device.Longitude = *req.Longitude
 	}
 
-	if err := s.deviceRepo.UpdateByID(id, currentDevice); err != nil {
-		return nil, fmt.Errorf("failed to update device: %w", err)
+	if err := s.deviceRepo.UpdateByID(id, device); err != nil {
+		return nil, fmt.Errorf("%s: %w", config.ErrFailedToUpdate, err)
 	}
 
-	// Fetch updated device
-	devices, err = s.deviceRepo.GetAll()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch updated device: %w", err)
-	}
-
-	for _, device := range devices {
-		if device.ID == id {
-			return &models.DeviceResponse{
-				ID:        device.ID,
-				UUID:      device.UUID,
-				Name:      device.Name,
-				Latitude:  device.Latitude,
-				Longitude: device.Longitude,
-				Address:   device.Address,
-				CreatedAt: device.CreatedAt,
-				UpdatedAt: device.UpdatedAt,
-			}, nil
-		}
-	}
-
-	return nil, fmt.Errorf("device not found after update")
+	return toDeviceResponse(device), nil
 }

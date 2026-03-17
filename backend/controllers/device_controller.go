@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
+	"ngovietthanh27/tracking-map/config"
 	"ngovietthanh27/tracking-map/models"
 	"ngovietthanh27/tracking-map/services"
 
@@ -22,18 +24,13 @@ func (c *DeviceController) CreateDevice(ctx *gin.Context) {
 	var req models.CreateDeviceRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": config.ErrInvalidRequest + ": " + err.Error()})
 		return
 	}
 
 	// Validate latitude and longitude ranges
-	if req.Latitude < -90 || req.Latitude > 90 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Latitude must be between -90 and 90"})
-		return
-	}
-
-	if req.Longitude < -180 || req.Longitude > 180 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Longitude must be between -180 and 180"})
+	if err := validateCoordinates(req.Latitude, req.Longitude); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -82,18 +79,13 @@ func (c *DeviceController) UpdateDeviceAddress(ctx *gin.Context) {
 
 	var req models.UpdateDeviceAddressRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": config.ErrInvalidRequest + ": " + err.Error()})
 		return
 	}
 
 	// Validate latitude and longitude ranges if provided
-	if req.Latitude != nil && (*req.Latitude < -90 || *req.Latitude > 90) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Latitude must be between -90 and 90"})
-		return
-	}
-
-	if req.Longitude != nil && (*req.Longitude < -180 || *req.Longitude > 180) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Longitude must be between -180 and 180"})
+	if err := validateOptionalCoordinates(req.Latitude, req.Longitude); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -104,4 +96,26 @@ func (c *DeviceController) UpdateDeviceAddress(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, device)
+}
+
+// Helper functions
+
+func validateCoordinates(lat, lng float64) error {
+	if lat < config.MinLatitude || lat > config.MaxLatitude {
+		return fmt.Errorf(config.ErrInvalidLatitude)
+	}
+	if lng < config.MinLongitude || lng > config.MaxLongitude {
+		return fmt.Errorf(config.ErrInvalidLongitude)
+	}
+	return nil
+}
+
+func validateOptionalCoordinates(lat, lng *float64) error {
+	if lat != nil && (*lat < config.MinLatitude || *lat > config.MaxLatitude) {
+		return fmt.Errorf(config.ErrInvalidLatitude)
+	}
+	if lng != nil && (*lng < config.MinLongitude || *lng > config.MaxLongitude) {
+		return fmt.Errorf(config.ErrInvalidLongitude)
+	}
+	return nil
 }

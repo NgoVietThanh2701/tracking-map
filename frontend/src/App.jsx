@@ -6,6 +6,7 @@ import { useDevices } from "./hooks/useDevices";
 import { useOsrmRoute } from "./hooks/useOsrmRoute";
 import { useSimulation } from "./hooks/useSimulation";
 import { useMovementHistory } from "./hooks/useMovementHistory";
+import historyService from "./services/historyService";
 import { MAP_CONFIG } from "./constants";
 
 function App() {
@@ -18,7 +19,6 @@ function App() {
     selectDevice,
     getSelectedDevice,
     updateDevice,
-    saveMovementRecord,
   } = useDevices();
   const [searchPlace, setSearchPlace] = useState(null);
   const [routeFrom, setRouteFrom] = useState(null);
@@ -47,6 +47,7 @@ function App() {
   const mapRef = useRef(null);
   const previousSimPlayingRef = useRef(false);
   const shouldResetSimDestinationRef = useRef(false);
+  const simHistoryBufferRef = useRef([]);
 
   // State for history time range
   const [historyStartTime, setHistoryStartTime] = useState(null);
@@ -92,6 +93,21 @@ function App() {
       selectedDevice &&
       simDestination
     ) {
+      // Persist simulation movement history to backend (batch)
+      const buffered = simHistoryBufferRef.current;
+      if (Array.isArray(buffered) && buffered.length > 0) {
+        historyService
+          .saveBatchHistory(selectedDevice.id, buffered)
+          .catch((err) => {
+            console.error("Failed to save history batch:", err);
+          })
+          .finally(() => {
+            simHistoryBufferRef.current = [];
+          });
+      } else {
+        simHistoryBufferRef.current = [];
+      }
+
       // Simulation finished, update device location and address
       updateDevice(selectedDevice.id, {
         address: simDestination.name,
@@ -128,13 +144,20 @@ function App() {
       )
         return;
 
+      // Reset buffer for this simulation run
+      simHistoryBufferRef.current = [];
+
       const onMovementSave = (lat, lng) => {
-        saveMovementRecord(selectedDevice.id, lat, lng);
+        simHistoryBufferRef.current.push({
+          latitude: lat,
+          longitude: lng,
+          time_stamp: new Date().toISOString(),
+        });
       };
 
       startSimulation(latlngs, durationSeconds, onMovementSave, simDestination);
     },
-    [startSimulation, selectedDevice, simDestination, saveMovementRecord],
+    [startSimulation, selectedDevice, simDestination],
   );
 
   const handleSimReset = useCallback(() => {
