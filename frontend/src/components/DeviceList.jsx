@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 
 const DeviceItem = memo(function DeviceItem({
   device,
@@ -6,10 +6,18 @@ const DeviceItem = memo(function DeviceItem({
   onSelect,
   onRemove,
 }) {
+  const [isRemoving, setIsRemoving] = useState(false);
+
   const handleRemove = useCallback(
-    (e) => {
+    async (e) => {
       e.stopPropagation();
-      onRemove(device.id);
+      setIsRemoving(true);
+      try {
+        await onRemove(device.id);
+      } catch (error) {
+        console.error("Failed to remove device:", error);
+        setIsRemoving(false);
+      }
     },
     [device.id, onRemove],
   );
@@ -52,10 +60,16 @@ const DeviceItem = memo(function DeviceItem({
         <button
           type="button"
           onClick={handleRemove}
-          className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors shrink-0"
+          disabled={isRemoving}
+          className={[
+            "px-2 py-1 text-xs rounded transition-colors shrink-0",
+            isRemoving
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-red-100 text-red-700 hover:bg-red-200",
+          ].join(" ")}
           title="Xoá thiết bị"
         >
-          ✕
+          {isRemoving ? "..." : "✕"}
         </button>
       </div>
     </div>

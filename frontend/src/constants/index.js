@@ -22,12 +22,6 @@ export const OSRM_CONFIG = {
   GEOMETRIES: "geojson",
 };
 
-// Backend API Configuration
-export const BACKEND_API = {
-  BASE_URL: "http://127.0.0.1:5000",
-  ROUTE_ENDPOINT: "/api/route",
-};
-
 // Map Configuration
 export const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';

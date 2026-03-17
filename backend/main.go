@@ -2,58 +2,34 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
-	"ngovietthanh27/tracking-map/handlers"
-	"ngovietthanh27/tracking-map/middleware"
-	"ngovietthanh27/tracking-map/services"
+	"ngovietthanh27/tracking-map/database"
+	"ngovietthanh27/tracking-map/route"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	godotenv.Load()
-	dsn := os.Getenv("DB_CONNECT_STR")
-	if dsn == "" {
-		log.Fatal("DB_CONNECT_STR is not set")
-	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-	_ = db
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Println("Connect database successfully!")
-
-	// Initialize services
-	routeService := services.NewRouteService()
-
-	// Initialize handlers
-	routeHandler := handlers.NewRouteHandler(routeService)
+	db := database.Connect()
+	_ = db // Reserved for future use
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
-
-	// Configure CORS
 	router.Use(cors.Default())
 
-	// Configure middleware
-	router.Use(middleware.ErrorHandler())
+	route.SetupRoutes(router, db)
 
-	// API Routes
-	api := router.Group("/api")
-	{
-		// Route endpoints
-		api.POST("/route", routeHandler.GetRoute)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "5000"
 	}
 
-	router.Run("127.0.0.1:5000")
+	fmt.Printf("Server running on http://127.0.1:%s\n", port)
+	router.Run("127.0.0.1:" + port)
 }

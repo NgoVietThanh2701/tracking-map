@@ -1,0 +1,29 @@
+CREATE TABLE devices (
+    id BIGSERIAL PRIMARY KEY,
+    uuid VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    address TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE histories_devices (
+    id BIGSERIAL PRIMARY KEY,
+    device_id BIGINT NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    time_stamp TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_device
+        FOREIGN KEY(device_id)
+        REFERENCES devices(id)
+        ON DELETE CASCADE
+);
+
+/* create INDEX */
+CREATE INDEX idx_histories_device_timestamp
+ON histories_devices(device_id, time_stamp);
+

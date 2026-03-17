@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { getRoute as fetchRoute } from "../services/api";
+import { getRoute as fetchRoute } from "../api/route";
 
 export function useOsrmRoute() {
   const [loading, setLoading] = useState(false);

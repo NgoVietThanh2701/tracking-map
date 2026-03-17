@@ -64,6 +64,8 @@ export default function InfoPanel({
   routeError,
   routeResult,
   devices = [],
+  deviceLoading = false,
+  deviceError = null,
   onAddDevice,
   onRemoveDevice,
   onSelectDevice,
@@ -195,16 +197,29 @@ export default function InfoPanel({
                 <div className="shrink-0 px-4">
                   <DeviceForm onAddDevice={onAddDevice} />
                 </div>
+                {deviceError && (
+                  <div className="mx-4 mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                    {deviceError}
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto min-w-0 border-t border-gray-200 pt-3 mt-3">
                   <h3 className="text-xs font-semibold text-gray-700 mb-2 px-4">
                     Danh sách thiết bị ({devices.length})
                   </h3>
                   <div className="px-4">
-                    <DeviceList
-                      devices={devices}
-                      onSelectDevice={onSelectDevice}
-                      onRemove={onRemoveDevice}
-                    />
+                    {deviceLoading ? (
+                      <div className="text-center py-4 text-gray-500">
+                        <p className="text-sm">
+                          Đang tải danh sách thiết bị...
+                        </p>
+                      </div>
+                    ) : (
+                      <DeviceList
+                        devices={devices}
+                        onSelectDevice={onSelectDevice}
+                        onRemove={onRemoveDevice}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -326,10 +341,11 @@ export default function InfoPanel({
                 <DeviceSelector
                   value={simDevice}
                   onChange={(device) => {
-                    onSimReset?.();
-                    onSelectDevice?.(device.id);
+                    if (device) {
+                      onSimReset?.();
+                      onSelectDevice?.(device.id);
+                    }
                   }}
-                  onSelectGlobal={onSelectDevice}
                   devices={devices}
                   label={SIMULATION_PANEL_LABELS.DEVICE_LABEL}
                   placeholder={SIMULATION_PANEL_LABELS.DEVICE_PLACEHOLDER}
@@ -420,10 +436,11 @@ export default function InfoPanel({
                   <DeviceSelector
                     value={historyDevice}
                     onChange={(device) => {
-                      onSelectDevice?.(device.id);
-                      onHistoryClear?.();
+                      if (device) {
+                        onSelectDevice?.(device.id);
+                        onHistoryClear?.();
+                      }
                     }}
-                    onSelectGlobal={onSelectDevice}
                     devices={devices}
                     label={HISTORY_PANEL_LABELS.DEVICE_LABEL}
                     placeholder={HISTORY_PANEL_LABELS.DEVICE_PLACEHOLDER}
@@ -475,7 +492,7 @@ export default function InfoPanel({
                   }}
                   disabled={!historyDevice || historyLoading || simPlaying}
                   className={[
-                    "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors shrink-0",
+                    "w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors shrink-0 cursor-pointer",
                     !historyDevice || historyLoading || simPlaying
                       ? "bg-gray-300 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700",

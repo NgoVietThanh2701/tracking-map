@@ -11,6 +11,8 @@ import { MAP_CONFIG } from "./constants";
 function App() {
   const {
     devices,
+    loading: deviceLoading,
+    error: deviceError,
     addDevice,
     removeDevice,
     selectDevice,
@@ -62,7 +64,7 @@ function App() {
         selectedDevice.longitude,
       );
     }
-  }, [selectedDevice]);
+  }, [selectedDevice?.id]);
 
   // Track and center map as simulation progresses
   useEffect(() => {
@@ -90,11 +92,13 @@ function App() {
       selectedDevice &&
       simDestination
     ) {
-      // Simulation finished, update device location and clear route
+      // Simulation finished, update device location and address
       updateDevice(selectedDevice.id, {
+        address: simDestination.name,
         latitude: simDestination.lat,
         longitude: simDestination.lng,
-        address: simDestination.name,
+      }).catch((err) => {
+        console.error("Failed to update device after simulation:", err);
       });
       clearRoute();
       shouldResetSimDestinationRef.current = true;
@@ -151,14 +155,6 @@ function App() {
       // For history playback, don't save records and don't update device location
       const noop = () => {};
 
-      console.log(
-        "Playing history with",
-        historyData.latlngs.length,
-        "points, duration:",
-        historyPlaybackDuration,
-        "seconds",
-      );
-
       startSimulation(
         historyData.latlngs,
         historyPlaybackDuration,
@@ -200,6 +196,8 @@ function App() {
         routeError={routeError}
         routeResult={route}
         devices={devices}
+        deviceLoading={deviceLoading}
+        deviceError={deviceError}
         onAddDevice={addDevice}
         onRemoveDevice={removeDevice}
         onSelectDevice={selectDevice}

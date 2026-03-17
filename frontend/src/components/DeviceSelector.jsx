@@ -4,7 +4,6 @@ export default function DeviceSelector({
   devices,
   label,
   placeholder,
-  onSelectGlobal,
 }) {
   return (
     <div>
@@ -14,11 +13,10 @@ export default function DeviceSelector({
       <select
         value={value ? value.id : ""}
         onChange={(e) => {
-          const selectedId = e.target.value;
+          const selectedId = parseInt(e.target.value, 10);
           if (selectedId) {
             const device = devices.find((d) => d.id === selectedId);
             onChange?.(device);
-            onSelectGlobal?.(device.id);
           } else {
             onChange?.(null);
           }
@@ -28,7 +26,7 @@ export default function DeviceSelector({
         <option value="">{placeholder}</option>
         {devices.map((device) => (
           <option key={device.id} value={device.id}>
-            {device.name} ({device.device_id || device.id})
+            {device.name}
           </option>
         ))}
       </select>
@@ -36,7 +34,9 @@ export default function DeviceSelector({
       {value && (
         <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
           <div className="text-xs font-medium text-gray-600">Thiết bị:</div>
-          <div className="font-medium mt-1">{value.name}</div>
+          <div className="font-medium mt-1">
+            {value.name} ({value.uuid})
+          </div>
           <div className="text-xs text-gray-600">{value.address}</div>
         </div>
       )}
