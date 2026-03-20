@@ -85,7 +85,10 @@ export function useMovementHistory() {
         return;
       }
 
-      const latlngs = records.map((record) => [record.latitude, record.longitude]);
+      const latlngs = records.map((record) => [
+        record.latitude,
+        record.longitude,
+      ]);
 
       const routeData = {
         latlngs,

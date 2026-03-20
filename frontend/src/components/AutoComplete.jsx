@@ -17,13 +17,15 @@ const AutoComplete = memo(function AutoComplete({
   const [dropdownRect, setDropdownRect] = useState(null);
   const anchorRef = useRef(null);
   const skipNextSearchRef = useRef(false);
-  const closedAfterSelectRef = useRef(false);
+  //const closedAfterSelectRef = useRef(false);
+  const [closedAfterSelect, setClosedAfterSelect] = useState(false);
 
   const debounced = useDebounce(query, NOMINATIM_CONFIG.DEBOUNCE_MS);
   const { loading, error, items, search } = useNominatimSearch();
   const canSearch = debounced.trim().length >= minChars;
 
-  const showDropdown = focused && canSearch && !closedAfterSelectRef.current;
+  //const showDropdown = focused && canSearch && !closedAfterSelectRef.current;
+  const showDropdown = focused && canSearch && !closedAfterSelect;
 
   useEffect(() => {
     if (!focused || !canSearch) {
@@ -48,13 +50,15 @@ const AutoComplete = memo(function AutoComplete({
 
   const selectItem = (place) => {
     skipNextSearchRef.current = true;
-    closedAfterSelectRef.current = true;
+    //closedAfterSelectRef.current = true;
+    setClosedAfterSelect(true);
     setQuery(place.name);
     onSelect?.(place);
   };
 
   const clear = () => {
-    closedAfterSelectRef.current = false;
+    //closedAfterSelectRef.current = false;
+    setClosedAfterSelect(false);
     setQuery("");
     setDropdownRect(null);
     onClear?.();
@@ -133,19 +137,22 @@ const AutoComplete = memo(function AutoComplete({
           type="text"
           value={query}
           onChange={(e) => {
-            closedAfterSelectRef.current = false;
+            //closedAfterSelectRef.current = false;
+            setClosedAfterSelect(false);
             setQuery(e.target.value);
           }}
           onFocus={() => {
             setFocused(true);
-            closedAfterSelectRef.current = false;
+            //closedAfterSelectRef.current = false;
+            setClosedAfterSelect(false);
           }}
           onBlur={() => {
             setFocused(false);
-            window.setTimeout(
-              () => (closedAfterSelectRef.current = false),
-              120,
-            );
+            // window.setTimeout(
+            //   () => (closedAfterSelectRef.current = false),
+            //   120,
+            // );
+            setTimeout(() => setClosedAfterSelect(false), 120);
           }}
           placeholder={placeholder}
           autoComplete="off"
