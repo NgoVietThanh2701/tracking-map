@@ -177,3 +177,43 @@ Frontend sẽ chạy trên dev server của Vite. Frontend gọi backend qua bas
 - Trong lúc mô phỏng: gom các điểm (lat/lng + `time_stamp`)
 - Khi mô phỏng kết thúc: gửi batch lên backend `POST /api/v1/histories`
 - Tab “Lịch sử”: gọi `GET /api/v1/histories` theo `device_id` + thời gian → vẽ lại route và playback
+
+#--------------------------------- Tile Crawler - Da Nang
+
+Công cụ này dùng để **crawl bản đồ dạng tile** từ OpenStreetMap cho khu vực Đà Nẵng ở nhiều mức zoom khác nhau. Tiles được lưu lại cục bộ để dùng cho ứng dụng offline hoặc phân tích dữ liệu.
+
+## Mục đích
+
+- Lấy dữ liệu bản đồ dạng tile (ảnh PNG) cho khu vực Đà Nẵng.
+- Giảm tải khi hiển thị bản đồ bằng cách lưu tile cục bộ.
+- Tự động xử lý retry, backoff khi gặp lỗi mạng hoặc rate-limit.
+
+## Flow hoạt động
+
+1. **API gọi crawl**  
+   Người dùng gửi POST request đến endpoint `/crawl` → kích hoạt `CrawlDaNangZoomRange(minZoom, maxZoom)` chạy trong goroutine.
+
+2. **Xác định vùng cần crawl**
+   - Dùng `Bounds` để xác định lat/lng min/max:
+     ```
+     MinLat: 15.9, MaxLat: 16.2
+     MinLng: 108.0, MaxLng: 108.4
+     ```
+
+3. **Tính toán tile**
+   - Mỗi điểm lat/lng được chuyển thành tile `(x, y)` tại zoom tương ứng bằng `LatLngToTile`.
+
+4. **Download tile**
+   - Kiểm tra tile đã tồn tại chưa, nếu có bỏ qua.
+   - Gửi request đến `https://{a|b|c}.tile.openstreetmap.org/{z}/{x}/{y}.png`.
+   - Retry với exponential backoff nếu gặp lỗi 5xx hoặc rate-limit (429).
+   - Lưu tile theo cấu trúc thư mục: `tiles/{zoom}/{x}/{y}.png`.
+
+5. **Hoàn tất**
+   - Tiles được lưu đầy đủ theo từng zoom, sẵn sàng dùng cho hiển thị hoặc phân tích offline.
+
+## API sử dụng
+
+```http
+POST /crawl
+```
