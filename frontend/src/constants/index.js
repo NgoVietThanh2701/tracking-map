@@ -27,10 +27,11 @@ export const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export const MAP_CONFIG = {
-  DEFAULT_CENTER: [21.0285, 105.8542],
+  DEFAULT_CENTER: [16.0544, 108.2022],
   DEFAULT_ZOOM: 15,
   SEARCH_ZOOM: 16,
-  TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  //TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  TILE_URL: "http://localhost:5000/tiles/{z}/{x}/{y}.png",
 };
 
 // Marker Configuration

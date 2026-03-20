@@ -21,8 +21,14 @@ func main() {
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
 	router.Use(cors.Default())
+	// CORS (để React gọi được)
+	// router.Use(func(c *gin.Context) {
+	// 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	// 	c.Next()
+	// })
 
 	route.SetupRoutes(router, db)
+	router.Static("/tiles", "./tiles")
 
 	port := os.Getenv("PORT")
 	if port == "" {

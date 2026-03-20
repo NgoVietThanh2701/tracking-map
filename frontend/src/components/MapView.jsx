@@ -137,6 +137,8 @@ const MapView = forwardRef(
         <MapContainer
           center={center}
           zoom={MAP_CONFIG.DEFAULT_ZOOM}
+          minZoom={12}
+          maxZoom={16}
           className="h-full w-full"
           zoomControl={false}
         >

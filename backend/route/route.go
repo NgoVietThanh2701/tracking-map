@@ -2,6 +2,7 @@ package route
 
 import (
 	"ngovietthanh27/tracking-map/controllers"
+	crawler "ngovietthanh27/tracking-map/internal/crawl"
 	"ngovietthanh27/tracking-map/repository"
 	"ngovietthanh27/tracking-map/services"
 
@@ -25,4 +26,10 @@ func SetupRoutes(router *gin.Engine, db *gorm.DB) {
 	RouteAPIs(api, routeController)
 	DeviceAPIs(api, deviceController)
 	HistoryAPIs(api, historyController)
+
+	// Crawl API
+	api.POST("/crawl", func(c *gin.Context) {
+		go crawler.CrawlDaNangZoomRange(12, 17)
+		c.JSON(200, gin.H{"status": "crawling started..."})
+	})
 }
